@@ -1,0 +1,32 @@
+```mermaid
+sequenceDiagram
+    participant PR as Pull Request
+    participant Agent as AI Agent (Copilot)
+    participant Config as wow/config.yaml
+    participant Files as WoW Files
+    participant Parent as Parent Level
+
+    PR->>Agent: PR opened / updated
+    Agent->>Config: Read config.yaml
+    Config-->>Agent: File manifest + inherits_from
+
+    Agent->>Agent: Filter files by applies_to: [pr]
+    Agent->>Files: Load matching files (3-5 files)
+    Files-->>Agent: Frontmatter + rule content
+
+    alt Has inherits_from
+        Agent->>Parent: Resolve parent config.yaml
+        Parent-->>Agent: Parent manifest + files
+        Agent->>Agent: Merge (field-level, hard rules locked)
+    end
+
+    Agent->>Agent: Evaluate PR against resolved rules
+
+    alt Hard rule violated
+        Agent->>PR: ❌ Blocking comment (enforcement: hard)
+    else Soft rule not met
+        Agent->>PR: 💡 Suggestion (enforcement: soft)
+    else All rules pass
+        Agent->>PR: ✅ WoW compliance check passed
+    end
+```

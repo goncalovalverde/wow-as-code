@@ -1,0 +1,12 @@
+wow_version: "1.0"
+
+# Root level — no inherits_from
+files:
+  - id: security-review
+    path: security-review.md
+    applies_to: [pr, commit]
+    enforcement: hard
+  - id: code-review
+    path: code-review.md
+    applies_to: [pr]
+    enforcement: soft

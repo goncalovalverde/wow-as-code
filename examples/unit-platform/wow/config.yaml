@@ -1,0 +1,15 @@
+wow_version: "1.0"
+
+inherits_from:
+  - url: "https://github.com/acme-corp/company-wow/wow"
+    ref: "v1.0"
+
+files:
+  - id: code-review
+    path: code-review.md
+    applies_to: [pr]
+    enforcement: soft
+  - id: architecture-principles
+    path: architecture-principles.md
+    applies_to: [pr, code-generation]
+    enforcement: soft

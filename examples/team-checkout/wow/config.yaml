@@ -1,0 +1,15 @@
+wow_version: "1.0"
+
+inherits_from:
+  - url: "https://github.com/acme-corp/platform-unit-wow/wow"
+    ref: "v1.0"
+
+files:
+  - id: code-review
+    path: code-review.md
+    applies_to: [pr]
+    enforcement: soft
+  - id: definition-of-done
+    path: definition-of-done.md
+    applies_to: [pr]
+    enforcement: soft

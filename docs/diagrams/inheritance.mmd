@@ -1,0 +1,33 @@
+```mermaid
+graph TD
+    subgraph "Company Level"
+        A[wow/config.yaml]
+        B[security-review.md<br/>enforcement: hard]
+        C[code-review.md<br/>enforcement: soft<br/>min_approvals: 1]
+    end
+
+    subgraph "Unit: Platform"
+        D[wow/config.yaml<br/>inherits_from: company]
+        E[code-review.md<br/>min_approvals: 2<br/>+ perf review]
+        F[architecture-principles.md<br/>enforcement: soft]
+    end
+
+    subgraph "Team: Checkout"
+        G[wow/config.yaml<br/>inherits_from: unit-platform]
+        H[code-review.md<br/>+ mob exception]
+        I[definition-of-done.md<br/>team-specific]
+    end
+
+    A --> D
+    D --> G
+    B -->|hard: flows locked| G
+    C -->|soft: overridable| E
+    E -->|soft: overridable| H
+
+    style B fill:#ff6b6b,color:#fff
+    style C fill:#ffd93d
+    style E fill:#ffd93d
+    style F fill:#ffd93d
+    style H fill:#ffd93d
+    style I fill:#6bcb77
+```
