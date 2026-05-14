@@ -3,7 +3,7 @@ id: definition-of-done
 title: Definition of Done
 category: quality
 enforcement: soft
-owner: @checkout-lead
+owner: "@checkout-lead"
 applies_to: [pr]
 last_reviewed: 2026-05-10
 tags: [quality-gate, delivery]

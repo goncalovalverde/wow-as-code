@@ -3,7 +3,7 @@ id: code-review
 title: Code Review Norms
 category: quality
 enforcement: soft
-owner: @engineering-leadership
+owner: "@engineering-leadership"
 applies_to: [pr]
 last_reviewed: 2026-04-15
 tags: [quality-gate]

@@ -3,7 +3,7 @@ id: code-review
 title: Code Review Norms
 category: quality
 enforcement: soft
-owner: @platform-lead
+owner: "@platform-lead"
 applies_to: [pr]
 last_reviewed: 2026-05-01
 tags: [quality-gate]

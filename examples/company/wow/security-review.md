@@ -3,7 +3,7 @@ id: security-review
 title: Security Review Requirements
 category: quality
 enforcement: hard
-owner: @security-team
+owner: "@security-team"
 applies_to: [pr, commit]
 last_reviewed: 2026-04-01
 tags: [security, compliance]

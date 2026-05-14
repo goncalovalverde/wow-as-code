@@ -3,7 +3,7 @@ id: architecture-principles
 title: Platform Architecture Principles
 category: architecture
 enforcement: soft
-owner: @platform-lead
+owner: "@platform-lead"
 applies_to: [pr, code-generation]
 last_reviewed: 2026-05-01
 tags: [architecture, platform]
