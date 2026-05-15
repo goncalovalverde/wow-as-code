@@ -69,6 +69,7 @@ Company wow/ → Unit wow/ → Team wow/
 - [Frontmatter Schema](spec/schema.json)
 - [Inheritance Model](spec/inheritance-model.md)
 - [Enforcement Levels](spec/enforcement-levels.md)
+- [Triggers](spec/triggers.md)
 - [config.yaml Specification](spec/config-yaml.md)
 
 ## Examples
