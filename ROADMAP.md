@@ -55,6 +55,15 @@
 - **Staleness detection** — Warn when `last_reviewed` exceeds configurable threshold (default: 90 days)
 
 ### Framework features
+- **Multiple inheritance** — A team can inherit from more than one source (e.g., unit-level AND product-level). Enables cross-cutting concerns like a product Definition of Done that applies alongside the unit's engineering standards. Merge order is defined in `config.yaml`:
+  ```yaml
+  inherits_from:
+    - url: "https://github.com/org/unit-platform/wow"
+      ref: "v1.0"
+    - url: "https://github.com/org/product-payments/wow"
+      ref: "v2.0"
+  ```
+  Conflict resolution: files from later sources override earlier ones (last-wins), except `enforcement: hard` rules which are always locked regardless of source.
 - Template library (starter wow/ files for common team archetypes)
 - Migration tooling (import from Confluence, Notion, wiki → wow/ format)
 
