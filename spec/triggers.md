@@ -149,17 +149,14 @@ A team-built tool that runs architecture reviews can filter for `custom:architec
 
 ---
 
-## Reserved Triggers (v2)
+## Reserved Triggers (future)
 
 The following triggers are reserved for future versions. Teams SHOULD NOT use these as custom trigger names:
 
 | Trigger | Planned use |
 |---------|-------------|
-| `design-doc` | Design document creation or review |
-| `incident` | Incident response activated |
-| `retro` | Retrospective context |
-| `meeting` | Meeting or ritual context |
-| `review` | Non-PR review (e.g., architecture review board) |
+| `deploy` | Deployment pipeline context |
+| `release` | Release preparation context |
 
 ---
 
