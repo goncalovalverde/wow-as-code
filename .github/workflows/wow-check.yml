@@ -1,0 +1,176 @@
+# PR Compliance Check
+# Posts a WoW compliance checklist as a PR comment on every pull request.
+# Updates the same comment on subsequent pushes (avoids spam).
+#
+# This is the core automation for the `pr` trigger — the most common
+# wow-as-code enforcement surface.
+
+name: WoW Compliance Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+
+jobs:
+  wow-check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          # Install yq for YAML parsing
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Read WoW manifest and build checklist
+        id: checklist
+        run: |
+          WOW_DIR="wow"
+          CONFIG="$WOW_DIR/config.yaml"
+
+          if [ ! -f "$CONFIG" ]; then
+            echo "No wow/config.yaml found — skipping compliance check."
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "skip=false" >> $GITHUB_OUTPUT
+
+          # Extract files that apply to PR trigger
+          PR_FILES=$(yq '.files[] | select(.applies_to[] == "pr") | .path' "$CONFIG")
+
+          if [ -z "$PR_FILES" ]; then
+            echo "No WoW files with applies_to: [pr] found."
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Build the compliance comment
+          COMMENT="## ✅ Ways of Working Compliance\n\n"
+          COMMENT+="Based on your team's codified agreements in \`wow/\`:\n\n"
+
+          HARD_COUNT=0
+          SOFT_COUNT=0
+          HAS_VIOLATIONS=false
+
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            FILEPATH="$WOW_DIR/$file"
+            [ ! -f "$FILEPATH" ] && continue
+
+            TITLE=$(yq --front-matter=extract '.title' "$FILEPATH" 2>/dev/null || echo "$file")
+            ENFORCEMENT=$(yq --front-matter=extract '.enforcement' "$FILEPATH" 2>/dev/null || echo "info")
+
+            case "$ENFORCEMENT" in
+              hard)
+                ICON="🔴"
+                LABEL="REQUIRED"
+                HARD_COUNT=$((HARD_COUNT + 1))
+                ;;
+              soft)
+                ICON="🟡"
+                LABEL="recommended"
+                SOFT_COUNT=$((SOFT_COUNT + 1))
+                ;;
+              *)
+                ICON="🔵"
+                LABEL="reference"
+                ;;
+            esac
+
+            COMMENT+="### $ICON $TITLE ($LABEL)\n\n"
+
+            # Extract checklist items from markdown body
+            RULES=$(sed -n '/^---$/,/^---$/d; /^- \[/p' "$FILEPATH" 2>/dev/null)
+
+            if [ -n "$RULES" ]; then
+              COMMENT+="$RULES\n\n"
+            else
+              # Fallback: extract any bullet points from the body
+              BODY_ITEMS=$(sed '1,/^---$/d' "$FILEPATH" | sed '1,/^---$/d' | grep -E '^\s*-' | head -10)
+              if [ -n "$BODY_ITEMS" ]; then
+                # Convert to checklist format
+                echo "$BODY_ITEMS" | while IFS= read -r item; do
+                  COMMENT+="- [ ] ${item#*- }\n"
+                done
+                COMMENT+="\n"
+              else
+                COMMENT+="- [ ] Review compliance with this rule\n\n"
+              fi
+            fi
+          done <<< "$PR_FILES"
+
+          # Summary line
+          COMMENT+="---\n\n"
+          COMMENT+="**Summary:** $HARD_COUNT hard rule(s), $SOFT_COUNT soft rule(s) applicable to this PR.\n\n"
+
+          if [ $HARD_COUNT -gt 0 ]; then
+            COMMENT+="⚠️ **Hard rules are non-negotiable.** This PR cannot be merged if hard rules are violated.\n\n"
+          fi
+
+          COMMENT+="---\n"
+          COMMENT+="*Generated from \`wow/\` by [wow-as-code](https://github.com/goncalovalverde/wow-as-code) — [learn more](../../tree/main/wow)*"
+
+          # Write to file for the next step
+          echo -e "$COMMENT" > /tmp/wow-comment.md
+
+          # Also output for debugging
+          echo "Generated compliance comment for $HARD_COUNT hard + $SOFT_COUNT soft rules"
+
+      - name: Post or update PR comment
+        if: steps.checklist.outputs.skip != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('/tmp/wow-comment.md', 'utf8');
+            const marker = 'Ways of Working Compliance';
+
+            // Find existing comment to update (avoid spam on re-pushes)
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+
+            const existing = comments.find(c => c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body
+              });
+              console.log(`Updated existing comment #${existing.id}`);
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body
+              });
+              console.log('Created new compliance comment');
+            }
+
+      - name: Fail on hard rule presence (optional gate)
+        if: steps.checklist.outputs.skip != 'true'
+        run: |
+          WOW_DIR="wow"
+          CONFIG="$WOW_DIR/config.yaml"
+
+          # Check if any hard-enforced files apply to PRs
+          HARD_FILES=$(yq '.files[] | select(.applies_to[] == "pr") | select(.enforcement == "hard") | .path' "$CONFIG")
+
+          if [ -n "$HARD_FILES" ]; then
+            echo "⚠️  Hard-enforced WoW rules detected. Reviewer must verify compliance."
+            echo "Hard rules:"
+            echo "$HARD_FILES"
+            # Uncomment the next line to make this a blocking check:
+            # exit 1
+          fi
