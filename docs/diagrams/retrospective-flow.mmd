@@ -1,0 +1,35 @@
+```mermaid
+sequenceDiagram
+    participant Cron as Sprint End (Cron / Event)
+    participant Action as GitHub Action / Bot
+    participant GH as GitHub API
+    participant CLI as wow CLI
+    participant Output as Retro Output
+
+    Cron->>Action: Sprint ended (schedule or Jira webhook)
+
+    Action->>CLI: wow show --trigger retrospective --format json
+    CLI-->>Action: Rules tagged with retrospective
+
+    Action->>GH: Fetch merged PRs for sprint period
+    GH-->>Action: PR data (reviews, CI status, time-to-merge)
+
+    Action->>Action: Analyze PRs against each rule
+
+    Note over Action: For each rule, calculate:
+    Note over Action: - Compliance rate (%)
+    Note over Action: - Violations list
+    Note over Action: - Trend vs. last sprint
+
+    Action->>Output: Generate compliance report
+
+    alt Output = Slack
+        Action->>Output: Post sprint health summary to #team channel
+    else Output = GitHub Issue
+        Action->>Output: Create "Sprint N Retro Prep" issue with findings
+    else Output = Dashboard
+        Action->>Output: Push metrics to tracking system
+    end
+
+    Note over Output: Team uses report as retro input
+```

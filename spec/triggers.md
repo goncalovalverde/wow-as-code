@@ -127,6 +127,43 @@ enforcement: soft
 
 ---
 
+### `retrospective`
+
+**Fires when:** A sprint or iteration ends and the team reflects on their process — e.g., a retrospective meeting, a sprint review, or a scheduled "health check" automation.
+
+**Agent behavior:**
+- Load all WoW files with `applies_to` containing `retrospective`
+- Analyze the sprint's activity against the rules to surface insights
+- `hard` rules → report violations that occurred during the sprint (compliance gaps)
+- `soft` rules → report adherence rate and suggest improvements
+- `info` rules → surface as discussion prompts for the retro
+
+**Typical analysis:**
+- "DoD was not met on 3 of 8 stories — test coverage requirement skipped"
+- "Code review turnaround exceeded 24h on 40% of PRs"
+- "Architecture principles followed in all new services"
+
+**Data sources (implementation-dependent):**
+- PR merge data (GitHub API)
+- CI/CD pass/fail rates
+- Jira story completion vs. DoD criteria
+- Code coverage reports
+
+**Implementation examples:**
+- **GitHub Action (scheduled):** Cron job at sprint end → analyze merged PRs → post summary to Slack or create a retro-prep issue
+- **Jira Automation:** Sprint completed event → generate compliance report
+- **Slack bot:** `/wow retro` command → agent summarizes rule adherence for the last sprint
+- **Dashboard:** Ongoing metrics visualization of WoW compliance over time
+
+**Example:**
+```yaml
+applies_to: [pr, retrospective]
+enforcement: soft
+```
+→ Rule is enforced on PRs AND its adherence is reported during retrospectives.
+
+---
+
 ## Trigger Matching
 
 ### Multiple triggers on one file
@@ -185,7 +222,6 @@ The following triggers are reserved for future versions. Teams SHOULD NOT use th
 |---------|-------------|
 | `deploy` | Deployment pipeline context |
 | `release` | Release preparation context |
-| `retrospective` | Sprint retrospective / continuous improvement context |
 
 ---
 
@@ -198,4 +234,5 @@ The following triggers are reserved for future versions. Teams SHOULD NOT use th
 | `code-generation` | Agent writing/suggesting code | Generated output |
 | `onboarding` | New joiner context, explicit questions | Chat responses |
 | `planning` | Work item enters planning/refinement | Issue comments, workflow gates |
+| `retrospective` | Sprint ends, team reflects on process | Compliance reports, retro prompts |
 | `custom:*` | Team-defined contexts | Team-built tooling |
