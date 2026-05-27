@@ -1,0 +1,165 @@
+# Retrospective Compliance Report
+# Analyzes merged PRs against WoW rules and posts a sprint health summary.
+#
+# Trigger: Bi-weekly schedule (adjust cron to your sprint cadence) or manual.
+# Output: Markdown report posted to Slack and/or created as a GitHub Issue.
+
+name: Sprint Retrospective - WoW Compliance
+
+on:
+  schedule:
+    - cron: '0 9 */14 * *'  # Every 14 days at 09:00 UTC — adjust to sprint end
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Number of days to look back'
+        required: false
+        default: '14'
+
+env:
+  LOOKBACK_DAYS: ${{ github.event.inputs.days || '14' }}
+
+jobs:
+  retro-report:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+      pull-requests: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch merged PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SINCE=$(date -d "-${LOOKBACK_DAYS} days" --iso-8601 2>/dev/null || date -v-${LOOKBACK_DAYS}d +%Y-%m-%d)
+          echo "Fetching PRs merged since $SINCE"
+
+          gh pr list \
+            --state merged \
+            --search "merged:>=$SINCE" \
+            --json number,title,author,reviews,mergedAt,labels,additions,deletions,reviewDecision,files \
+            --limit 200 > prs.json
+
+          echo "SINCE=$SINCE" >> $GITHUB_ENV
+          echo "PR_COUNT=$(jq length prs.json)" >> $GITHUB_ENV
+
+      - name: Analyze compliance
+        run: |
+          cat <<'SCRIPT' > analyze.sh
+          #!/bin/bash
+          set -euo pipefail
+
+          SINCE="$1"
+          TODAY=$(date +%Y-%m-%d)
+          PR_COUNT=$(jq length prs.json)
+
+          # --- Metrics ---
+
+          # 1. Code Review: PRs with >= 2 approvals
+          APPROVED_COUNT=$(jq '[.[] | select(.reviews | map(select(.state == "APPROVED")) | length >= 2)] | length' prs.json)
+          REVIEW_RATE=$(( PR_COUNT > 0 ? APPROVED_COUNT * 100 / PR_COUNT : 0 ))
+
+          # 2. PR Description: PRs with non-empty body (title length > 20 as proxy)
+          # Using title length as proxy since body isn't in the default fields
+          DESCRIBED_COUNT=$(jq '[.[] | select(.title | length > 15)] | length' prs.json)
+
+          # 3. Small PRs: PRs with < 400 lines changed (additions + deletions)
+          SMALL_COUNT=$(jq '[.[] | select((.additions + .deletions) < 400)] | length' prs.json)
+          SMALL_RATE=$(( PR_COUNT > 0 ? SMALL_COUNT * 100 / PR_COUNT : 0 ))
+
+          # 4. Review decision coverage
+          DECISION_COUNT=$(jq '[.[] | select(.reviewDecision == "APPROVED")] | length' prs.json)
+          DECISION_RATE=$(( PR_COUNT > 0 ? DECISION_COUNT * 100 / PR_COUNT : 0 ))
+
+          # 5. PRs without any review
+          NO_REVIEW=$(jq '[.[] | select(.reviews | length == 0)] | length' prs.json)
+
+          # 6. Security-sensitive PRs (touching auth/security paths)
+          SECURITY_PRS=$(jq '[.[] | select(.files[]?.path | test("auth|security|crypto|secret"; "i"))] | length' prs.json 2>/dev/null || echo "0")
+
+          # --- Report ---
+
+          cat > report.md << EOF
+          ## 📊 Sprint Retrospective — WoW Compliance Report
+
+          **Period:** ${SINCE} → ${TODAY}
+          **PRs merged:** ${PR_COUNT}
+
+          ---
+
+          ### Rule Compliance
+
+          | Rule | Compliance | Detail |
+          |------|-----------|--------|
+          | **Code Review** (≥2 approvals) | ${REVIEW_RATE}% (${APPROVED_COUNT}/${PR_COUNT}) | $([ $REVIEW_RATE -ge 90 ] && echo "✅" || ([ $REVIEW_RATE -ge 70 ] && echo "⚠️" || echo "❌")) |
+          | **PR Size** (<400 lines) | ${SMALL_RATE}% (${SMALL_COUNT}/${PR_COUNT}) | $([ $SMALL_RATE -ge 80 ] && echo "✅" || ([ $SMALL_RATE -ge 60 ] && echo "⚠️" || echo "❌")) |
+          | **Review Decision** (formal approval) | ${DECISION_RATE}% (${DECISION_COUNT}/${PR_COUNT}) | $([ $DECISION_RATE -ge 90 ] && echo "✅" || ([ $DECISION_RATE -ge 70 ] && echo "⚠️" || echo "❌")) |
+          | **No Review at all** | ${NO_REVIEW} PRs | $([ $NO_REVIEW -eq 0 ] && echo "✅" || echo "❌") |
+          | **Security-sensitive PRs** | ${SECURITY_PRS} detected | ℹ️ Manual check recommended |
+
+          ---
+
+          ### 🔍 PRs Without Sufficient Review
+
+          EOF
+
+          # List PRs that didn't meet review threshold
+          jq -r '.[] | select(.reviews | map(select(.state == "APPROVED")) | length < 2) | "- #\(.number) \(.title) (@\(.author.login))"' prs.json >> report.md
+
+          cat >> report.md << EOF
+
+          ---
+
+          ### 💡 Discussion Prompts
+
+          - Were there legitimate reasons for skipping reviews (hotfix, trivial change)?
+          - Should any \`soft\` rules be promoted to \`hard\` based on repeated violations?
+          - Are large PRs a sign of unclear scope during planning?
+          - Did security-sensitive changes get appropriate attention?
+
+          ---
+
+          ### 📈 Actions to Consider
+
+          $([ $REVIEW_RATE -lt 80 ] && echo "- [ ] Discuss: promote code review to \`hard\` enforcement?" || echo "- [x] Code review rate healthy")
+          $([ $SMALL_RATE -lt 70 ] && echo "- [ ] Discuss: add PR size guidance to Definition of Done?" || echo "- [x] PR sizes reasonable")
+          $([ $NO_REVIEW -gt 0 ] && echo "- [ ] Review the ${NO_REVIEW} unreviewed PRs — were they justified?" || echo "- [x] All PRs were reviewed")
+
+          ---
+
+          *Generated by [wow-as-code](https://github.com/goncalovalverde/wow-as-code) retrospective trigger.*
+          EOF
+
+          echo "Report generated:"
+          cat report.md
+          SCRIPT
+
+          chmod +x analyze.sh
+          bash analyze.sh "$SINCE"
+
+      - name: Create retrospective issue
+        if: env.PR_COUNT != '0'
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: "📊 Sprint Retro Prep — WoW Compliance (${{ env.SINCE }} → ${{ github.event.repository.updated_at }})"
+          content-filepath: report.md
+          labels: retrospective,wow-compliance
+
+      - name: Post to Slack (optional)
+        if: env.PR_COUNT != '0' && vars.SLACK_RETRO_WEBHOOK != ''
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ vars.SLACK_RETRO_WEBHOOK }}
+          payload: |
+            {
+              "text": "📊 Sprint Retro Prep is ready! Check the latest WoW compliance report.",
+              "attachments": [{
+                "color": "#36a64f",
+                "title": "Sprint Compliance Report",
+                "title_link": "${{ github.server_url }}/${{ github.repository }}/issues",
+                "text": "${{ env.PR_COUNT }} PRs analyzed. See the issue for full details."
+              }]
+            }
