@@ -1,6 +1,13 @@
 # wow-as-code
 
+[![Spec Version](https://img.shields.io/badge/spec-v1.0-blue)](spec/)
+[![License: Apache 2.0](https://img.shields.io/badge/code-Apache%202.0-orange)](LICENSE)
+[![License: CC BY 4.0](https://img.shields.io/badge/docs-CC%20BY%204.0-lightgrey)](LICENSE-DOCS)
+[![Triggers](https://img.shields.io/badge/triggers-7%20core-green)](spec/triggers.md)
+
 **Team agreements as code. Human-readable. Agent-enforceable.**
+
+> 📖 [Why wow-as-code?](docs/why.md) · 🚀 [Getting Started](docs/getting-started.md) · 🤖 [Agent Integration](docs/agent-integration.md)
 
 ---
 

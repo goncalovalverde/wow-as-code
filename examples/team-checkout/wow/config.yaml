@@ -13,3 +13,11 @@ files:
     path: definition-of-done.md
     applies_to: [pr, planning]
     enforcement: soft
+  - id: onboarding-checklist
+    path: onboarding-checklist.md
+    applies_to: [onboarding]
+    enforcement: info
+  - id: sprint-health
+    path: sprint-health.md
+    applies_to: [retrospective]
+    enforcement: soft

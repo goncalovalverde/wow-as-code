@@ -164,6 +164,34 @@ enforcement: soft
 
 ---
 
+### `deploy`
+
+**Fires when:** Code is being deployed to an environment — e.g., a deployment pipeline runs, a release is promoted to staging/production, or a deploy approval is requested.
+
+**Agent behavior:**
+- Load all WoW files with `applies_to` containing `deploy`
+- Validate deployment readiness against the rules
+- `hard` rules → block the deployment until satisfied (gate)
+- `soft` rules → warn in deployment logs or Slack notification
+- `info` rules → log for audit trail
+
+**Typical files:** security review requirements, architecture principles, release checklists
+
+**Implementation examples:**
+- **GitHub Action (on deployment):** Trigger on `deployment` or `workflow_run` event → validate rules → approve/reject deployment
+- **CD pipeline gate:** Jenkins/ArgoCD/Flux pre-deploy hook checks WoW compliance
+- **Slack notification:** Post deployment readiness checklist to release channel
+- **Manual approval:** Require sign-off on hard rules before production deploy
+
+**Example:**
+```yaml
+applies_to: [pr, deploy]
+enforcement: hard
+```
+→ Rule blocks PRs AND blocks deployments if not satisfied.
+
+---
+
 ## Trigger Matching
 
 ### Multiple triggers on one file
@@ -220,7 +248,6 @@ The following triggers are reserved for future versions. Teams SHOULD NOT use th
 
 | Trigger | Planned use |
 |---------|-------------|
-| `deploy` | Deployment pipeline context |
 | `release` | Release preparation context |
 
 ---
@@ -235,4 +262,5 @@ The following triggers are reserved for future versions. Teams SHOULD NOT use th
 | `onboarding` | New joiner context, explicit questions | Chat responses |
 | `planning` | Work item enters planning/refinement | Issue comments, workflow gates |
 | `retrospective` | Sprint ends, team reflects on process | Compliance reports, retro prompts |
+| `deploy` | Code deployed to environment | Pipeline gates, deploy notifications |
 | `custom:*` | Team-defined contexts | Team-built tooling |
