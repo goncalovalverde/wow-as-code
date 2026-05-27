@@ -1,17 +1,20 @@
 ```mermaid
 sequenceDiagram
-    participant PR as Pull Request
-    participant Agent as AI Agent (Copilot)
+    participant Trigger as Trigger Source
+    participant Agent as AI Agent / Automation
     participant Config as wow/config.yaml
     participant Files as WoW Files
     participant Parent as Parent Level
+    participant Output as Enforcement Surface
 
-    PR->>Agent: PR opened / updated
+    Note over Trigger: pr | commit | code-generation | onboarding | planning
+
+    Trigger->>Agent: Event fires (e.g., PR opened, member added, issue refined)
     Agent->>Config: Read config.yaml
     Config-->>Agent: File manifest + inherits_from
 
-    Agent->>Agent: Filter files by applies_to: [pr]
-    Agent->>Files: Load matching files (3-5 files)
+    Agent->>Agent: Filter files by applies_to matching current trigger
+    Agent->>Files: Load matching files
     Files-->>Agent: Frontmatter + rule content
 
     alt Has inherits_from
@@ -20,13 +23,23 @@ sequenceDiagram
         Agent->>Agent: Merge (field-level, hard rules locked)
     end
 
-    Agent->>Agent: Evaluate PR against resolved rules
+    Agent->>Agent: Evaluate context against resolved rules
 
-    alt Hard rule violated
-        Agent->>PR: ❌ Blocking comment (enforcement: hard)
-    else Soft rule not met
-        Agent->>PR: 💡 Suggestion (enforcement: soft)
-    else All rules pass
-        Agent->>PR: ✅ WoW compliance check passed
+    alt Trigger = pr | commit
+        alt Hard rule violated
+            Agent->>Output: ❌ Blocking comment / CI failure
+        else Soft rule not met
+            Agent->>Output: 💡 Suggestion comment
+        else All rules pass
+            Agent->>Output: ✅ Compliance check passed
+        end
+    else Trigger = planning
+        Agent->>Output: 📋 Surface checklist on work item
+        Note over Output: Jira comment, workflow gate, or issue panel
+    else Trigger = onboarding
+        Agent->>Output: 👋 Welcome digest (issue / Slack / email)
+        Note over Output: Assigned to new member, closeable
+    else Trigger = code-generation
+        Agent->>Output: 🤖 Apply as generation constraints
     end
 ```

@@ -1,0 +1,25 @@
+```mermaid
+sequenceDiagram
+    participant GH as GitHub (membership event)
+    participant Action as GitHub Action
+    participant Repo as Repository
+    participant CLI as wow CLI
+    participant Issue as GitHub Issue
+
+    GH->>Action: membership: added (new member joins team)
+    Action->>Repo: actions/checkout
+
+    Action->>CLI: wow show --trigger onboarding --format markdown
+    CLI->>Repo: Read wow/config.yaml
+    Repo-->>CLI: File manifest
+    CLI->>CLI: Filter files where applies_to includes "onboarding"
+    CLI->>Repo: Load matching WoW files
+    Repo-->>CLI: Rule content (DoD, code review, architecture, etc.)
+    CLI-->>Action: Rendered markdown digest
+
+    Action->>Issue: Create issue (peter-evans/create-issue-from-file)
+    Note over Issue: Title: "👋 Welcome! Review our team ways of working"
+    Note over Issue: Assigned to: new member
+    Note over Issue: Labels: onboarding
+    Issue-->>GH: New member sees issue in their notifications
+```

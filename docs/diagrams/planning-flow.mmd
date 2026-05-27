@@ -1,0 +1,27 @@
+```mermaid
+sequenceDiagram
+    participant Dev as Developer
+    participant Jira as Jira Board
+    participant Auto as Jira Automation
+    participant WoW as WoW Rules (planning trigger)
+    participant Item as Work Item
+
+    Dev->>Jira: Move issue to "Selected for Development"
+    Jira->>Auto: Status transition event
+
+    Auto->>WoW: Load rules with applies_to: [planning]
+    WoW-->>Auto: DoD checklist, architecture principles, etc.
+
+    Auto->>Item: Add comment with planning checklist
+    Note over Item: 📋 "Before starting, review these team agreements:"
+
+    alt Workflow validator enabled
+        Dev->>Jira: Attempt to move to "In Progress"
+        Jira->>Jira: Check: "DoD Reviewed" field = Yes?
+        alt Field not checked
+            Jira-->>Dev: ❌ Blocked — review DoD first
+        else Field checked
+            Jira-->>Dev: ✅ Transition allowed
+        end
+    end
+```
