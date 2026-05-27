@@ -33,7 +33,7 @@
       "description": "Triggers that determine when an agent should load this rule.",
       "items": {
         "type": "string",
-        "enum": ["pr", "commit", "code-generation", "onboarding"]
+        "enum": ["pr", "commit", "code-generation", "onboarding", "planning"]
       },
       "minItems": 1
     },

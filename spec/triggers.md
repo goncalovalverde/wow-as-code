@@ -99,6 +99,34 @@ enforcement: soft
 
 ---
 
+### `planning`
+
+**Fires when:** A work item enters a planning or refinement phase — e.g., moved to "Selected for Development" in Jira, added to a sprint backlog, or discussed during refinement.
+
+**Agent behavior:**
+- Load all WoW files with `applies_to` containing `planning`
+- Surface rules as reminders or checklists before work begins
+- `hard` rules → block the item from entering "In Progress" until acknowledged
+- `soft` rules → surface as a reminder (e.g., comment on the issue)
+- `info` rules → display as reference context for estimation/discussion
+
+**Typical files:** definition of done, architecture principles, security review requirements
+
+**Implementation examples:**
+- **Jira Automation:** When issue transitions to refinement status → inject DoD checklist as a comment
+- **Jira Workflow Validator:** Require "DoD Reviewed" field before transition to "In Progress"
+- **Atlassian Forge app:** Render WoW rules inline on the issue panel
+- **Linear/GitHub Projects:** Automation rule triggered on status change
+
+**Example:**
+```yaml
+applies_to: [pr, planning]
+enforcement: soft
+```
+→ Rule is checked during PRs AND surfaced when work items enter planning.
+
+---
+
 ## Trigger Matching
 
 ### Multiple triggers on one file
@@ -157,6 +185,7 @@ The following triggers are reserved for future versions. Teams SHOULD NOT use th
 |---------|-------------|
 | `deploy` | Deployment pipeline context |
 | `release` | Release preparation context |
+| `retrospective` | Sprint retrospective / continuous improvement context |
 
 ---
 
@@ -168,4 +197,5 @@ The following triggers are reserved for future versions. Teams SHOULD NOT use th
 | `commit` | Code pushed, pre-commit hooks | CI checks, push rejection |
 | `code-generation` | Agent writing/suggesting code | Generated output |
 | `onboarding` | New joiner context, explicit questions | Chat responses |
+| `planning` | Work item enters planning/refinement | Issue comments, workflow gates |
 | `custom:*` | Team-defined contexts | Team-built tooling |

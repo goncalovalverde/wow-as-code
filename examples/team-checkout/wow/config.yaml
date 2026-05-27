@@ -11,5 +11,5 @@ files:
     enforcement: soft
   - id: definition-of-done
     path: definition-of-done.md
-    applies_to: [pr]
+    applies_to: [pr, planning]
     enforcement: soft

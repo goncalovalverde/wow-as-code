@@ -4,7 +4,7 @@ title: Definition of Done
 category: quality
 enforcement: soft
 owner: "@checkout-lead"
-applies_to: [pr]
+applies_to: [pr, planning]
 last_reviewed: 2026-05-10
 tags: [quality-gate, delivery]
 ---
