@@ -1,0 +1,46 @@
+# Onboarding Automation
+# Surfaces team WoW rules when a new member joins the GitHub team.
+#
+# Trigger: GitHub organization membership event (user added to a team)
+# Action: Creates a welcome issue assigned to the new member with all
+#         onboarding-triggered rules rendered as a checklist.
+
+name: Onboarding - Surface WoW Rules
+
+on:
+  membership:
+    types: [added]
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build WoW CLI
+        working-directory: cli
+        run: |
+          npm ci
+          npm run build
+
+      - name: Generate onboarding digest
+        working-directory: cli
+        run: |
+          node dist/index.js show --trigger onboarding --format markdown > ../digest.md
+
+      - name: Create onboarding issue
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: "👋 Welcome! Review our team ways of working"
+          content-filepath: digest.md
+          assignees: ${{ github.event.member.login }}
+          labels: onboarding
