@@ -87,3 +87,18 @@ The CLI `wow validate` enforces:
 ## Auto-generation
 
 The CLI `wow init` generates `config.yaml` automatically by scanning existing `wow/` files and extracting frontmatter. Teams don't need to maintain this file manually — run `wow validate --fix` to regenerate it from source files.
+
+## External Source (Private WoW)
+
+When `wow/` cannot live in the target repository (e.g., shared repos, client-owned codebases), rules are loaded from an external private source at runtime.
+
+Supported mechanisms:
+
+1. **Cross-repo checkout** — GitHub Action checks out the private WoW repo during CI
+2. **Environment variable** — `WOW_SOURCE` URL + `WOW_TOKEN` for authentication
+3. **Published package** — WoW rules as a versioned npm/artifact package
+4. **CLI flag** — `wow validate --source <url> --token <token>`
+
+The `inherits_from` URLs support private repositories when authentication is available in the environment (`GH_TOKEN`, `WOW_TOKEN`, or GitHub App credentials).
+
+See [Private WoW Source guide](../docs/private-wow-source.md) for implementation patterns.
