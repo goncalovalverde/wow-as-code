@@ -4,7 +4,45 @@
 
 ## Overview
 
-A `wow/` directory at the root of a repository contains the team's codified Ways of Working. This directory is **visible** (no dot-prefix) because these files are meant to be discovered and read by humans — not hidden as infrastructure.
+A `wow/` directory contains a team's codified Ways of Working. This directory is **visible** (no dot-prefix) because these files are meant to be discovered and read by humans — not hidden as infrastructure.
+
+## Deployment Models
+
+### Dedicated WoW repo (recommended for teams)
+
+The `wow/` directory lives in its own private repository. Product repos read from it at CI time via cross-repo checkout.
+
+```
+your-org/team-wow/          ← private, team-owned
+  wow/
+  ├── config.yaml
+  ├── code-review.md
+  └── definition-of-done.md
+
+your-org/product-api/       ← product repo (no wow/ here)
+  .github/
+    workflows/wow-check.yml ← reads from team-wow at runtime
+```
+
+**When to use:** teams with multiple repos, shared/client codebases, private rules.
+
+See [Multi-Repo Teams](../docs/multi-repo-teams.md) and [Private WoW Source](../docs/private-wow-source.md).
+
+### In-repo `wow/` directory (simple/starter)
+
+The `wow/` directory lives at the root of a code repository.
+
+```
+your-repo/
+  wow/
+  ├── config.yaml
+  ├── code-review.md
+  └── definition-of-done.md
+```
+
+**When to use:** single-repo teams, personal projects, open source repos.
+
+---
 
 ## Structure
 

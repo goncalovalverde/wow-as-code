@@ -25,15 +25,18 @@ Your team's working agreements live in a Confluence page nobody reads. New joine
 
 ## The Solution
 
-A `wow/` directory in your repository:
+A `wow/` directory — in a **dedicated team repo** (recommended) or alongside your code:
 
 ```
-wow/
-├── config.yaml              # Manifest + inheritance config
-├── code-review.md           # enforcement: soft
-├── security-review.md       # enforcement: hard (can't be relaxed)
-└── definition-of-done.md    # enforcement: soft
+your-org/team-wow/               # Private repo — single source of truth
+  wow/
+  ├── config.yaml                # Manifest + inheritance config
+  ├── code-review.md             # enforcement: soft
+  ├── security-review.md         # enforcement: hard (can't be relaxed)
+  └── definition-of-done.md      # enforcement: soft
 ```
+
+Your product repos read from it via CI — rules stay private, enforcement is automatic.
 
 Each file is structured markdown with YAML frontmatter:
 
