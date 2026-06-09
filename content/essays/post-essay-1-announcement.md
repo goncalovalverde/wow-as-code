@@ -6,15 +6,11 @@
 
 ---
 
-Your team's Definition of Done is in Confluence.
+I've been thinking about why AI agents give mediocre code reviews — and I don't think it's a model problem.
 
-Last updated 14 months ago.
+It's a context problem. The agent has no idea how your team works.
 
-Nobody reads it. New joiners discover it by violating it. AI agents have zero idea it exists.
-
-We version-control everything — except how we work.
-
-I wrote about why that's a problem, and what treating team agreements like code actually looks like in practice.
+Published my first essay on this. If you've ever wondered why your team's norms don't survive scaling, it might be worth 5 minutes.
 
 👇 Link in comments.
 
