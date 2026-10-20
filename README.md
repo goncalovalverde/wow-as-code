@@ -79,7 +79,7 @@ wow sync                 # writes AGENTS.md, CLAUDE.md, .github/copilot-instruct
 wow sync --check         # CI gate: exit 1 if generated files are missing or drifted
 wow sync -t agents-md    # one target only
 ```
-`wow/` is the single source of truth. Generated files carry a `DO NOT EDIT` header; `wow sync` refuses to overwrite hand-written files unless `--force` is passed. See [ADR-002](docs/adr/002-compile-first-runtime-second.md) and the [flow diagram](docs/diagrams/sync-flow.mmd).
+`wow/` is the single source of truth. Generated files carry a `DO NOT EDIT` header; `wow sync` refuses to overwrite hand-written files unless `--force` is passed. `inherits_from` sources (local paths or `https://host/owner/repo/wow` with a `ref`) are resolved before compiling; add `--strict` in CI to fail if a parent cannot be loaded, and `wow validate` fails if a team tries to relax an inherited `hard` rule. See [ADR-002](docs/adr/002-compile-first-runtime-second.md), [ADR-003](docs/adr/003-remote-sources-and-hard-lock-validation.md), the [sync flow](docs/diagrams/sync-flow.mmd) and [source providers](docs/diagrams/source-providers.mmd).
 
 ## Specification
 

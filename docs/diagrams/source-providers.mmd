@@ -1,0 +1,38 @@
+classDiagram
+  class SourceProvider {
+    <<interface>>
+    +load(source, options) LoadedSource
+    +dispose() void
+  }
+  class LoadedSource {
+    id
+    location
+    files
+    inheritsFrom
+  }
+  class FilesystemSourceProvider
+  class GitSourceProvider {
+    -clones
+    -clone(parsed, ref)
+    -assertContained(cloneDir, paths)
+  }
+  class RoutingSourceProvider
+  class resolveRules {
+    <<function>>
+  }
+  class resolveChain {
+    <<function>>
+    hard lock + conflict
+  }
+  SourceProvider <|.. FilesystemSourceProvider
+  SourceProvider <|.. GitSourceProvider
+  SourceProvider <|.. RoutingSourceProvider
+  RoutingSourceProvider --> FilesystemSourceProvider : local paths
+  RoutingSourceProvider --> GitSourceProvider : URL sources
+  GitSourceProvider --> FilesystemSourceProvider : reads clone
+  SourceProvider ..> LoadedSource
+  resolveRules --> SourceProvider
+  resolveRules --> resolveChain
+  show --> resolveRules
+  sync --> resolveRules
+  validate --> resolveRules : conflicts + warnings

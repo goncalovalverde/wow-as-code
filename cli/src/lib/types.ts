@@ -33,9 +33,18 @@ export interface ConfigFileEntry {
   id: string;
 }
 
+export interface HardRuleConflict {
+  lockedBy: string;
+  lockedOwner: string;
+  attemptedBy: string;
+  attemptedFile: string;
+  attemptedEnforcement: "soft" | "info";
+}
+
 export interface ResolvedRule extends WoWFile {
   provenance: string;
   overriddenBy?: string;
+  conflict?: HardRuleConflict;
 }
 
 export type OutputFormat = "text" | "json";

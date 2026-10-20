@@ -51,8 +51,12 @@ files:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `url` | string | Yes | Git URL to the parent's `wow/` directory. |
-| `ref` | string | Yes | Git ref (tag or branch). Tags recommended for stability. |
+| `url` | string | Yes | Git URL to the parent's `wow/` directory (`https://host/owner/repo/<path-to-wow>`), or a local path relative to this `wow/` directory. |
+| `ref` | string | Yes for Git URLs | Git ref (tag or branch). Tags recommended for stability. Ignored for local paths. |
+
+**URL format.** The repository is the first two path segments (`owner/repo`), or everything up to the first `.git` segment when present; the remainder is the path to the `wow/` directory inside the repo. Only `https` and `ssh` schemes are accepted. Paths and symlinks that escape the cloned repository are rejected.
+
+**Authentication.** `WOW_TOKEN` (or `GH_TOKEN`) is used for `github.com` sources. For other hosts, rely on your own Git credential configuration.
 
 ### `files[]`
 
@@ -81,8 +85,10 @@ The CLI `wow validate` enforces:
 1. Every file in `wow/` (excluding `config.yaml`) MUST be listed in the manifest.
 2. Manifest `id`, `applies_to`, and `enforcement` MUST match the file's frontmatter.
 3. Manifest `path` MUST resolve to an existing file.
-4. `inherits_from` URLs MUST be reachable (warning if offline).
+4. `inherits_from` sources MUST be reachable (warning if offline; `wow sync --strict` treats it as failure).
 5. No duplicate `id` values within the same manifest.
+6. A file MUST NOT relax (`soft`/`info`) a `hard` rule inherited from a parent — `wow validate` reports a `CONFLICT` error.
+7. A rule past its `review_by` date produces a warning.
 
 ## Auto-generation
 

@@ -1,5 +1,3 @@
-import { join, resolve } from "node:path";
-import { loadConfig } from "./config.js";
 import { resolveChain, type InheritanceLayer, type SourceProvider } from "./resolver.js";
 import type { ResolvedRule } from "./types.js";
 
@@ -8,48 +6,45 @@ export interface ResolveResult {
   warnings: string[];
 }
 
-const REMOTE_SOURCE = /^([a-z][a-z0-9+.-]*:\/\/|git@)/i;
+interface ResolveContext {
+  provider: SourceProvider;
+  warnings: string[];
+}
 
-async function resolveInto(
-  wowDir: string,
-  provider: SourceProvider,
-  visited: Set<string>,
-  warnings: string[]
+async function resolveSource(
+  source: string,
+  label: string,
+  context: ResolveContext,
+  chain: ReadonlySet<string>,
+  options: { baseDir?: string; ref?: string }
 ): Promise<ResolvedRule[]> {
-  const config = await loadConfig(join(wowDir, "config.yaml"));
+  const loaded = await context.provider.load(source, options);
+  if (chain.has(loaded.id)) {
+    throw new Error(`Circular inheritance detected at ${loaded.id}`);
+  }
+  const nextChain = new Set(chain).add(loaded.id);
   const layers: InheritanceLayer[] = [];
 
-  for (const source of config.inherits_from ?? []) {
-    if (REMOTE_SOURCE.test(source.url)) {
-      warnings.push(`Remote source not supported yet, skipped: ${source.url}`);
-      continue;
-    }
-    const sourceDir = resolve(wowDir, source.url);
-    if (visited.has(sourceDir)) {
-      warnings.push(`Circular inheritance detected, skipped: ${source.url}`);
-      continue;
-    }
+  for (const parent of loaded.inheritsFrom) {
     try {
-      const parentRules = await resolveInto(sourceDir, provider, new Set(visited).add(sourceDir), warnings);
-      const files = parentRules.map((rule) => ({
-        ...rule,
-        provenance: rule.provenance === "local" ? source.url : rule.provenance,
-      }));
-      layers.push({ provenance: source.url, files });
+      const parentRules = await resolveSource(parent.url, parent.url, context, nextChain, {
+        baseDir: loaded.location,
+        ref: parent.ref,
+      });
+      layers.push({ provenance: parent.url, files: parentRules });
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
-      warnings.push(`Cannot load source ${source.url}: ${reason}`);
+      context.warnings.push(`Cannot load source ${parent.url}: ${reason}`);
     }
   }
 
-  layers.push({ provenance: "local", files: await provider.loadFiles(wowDir) });
+  layers.push({ provenance: label, files: loaded.files });
   return resolveChain(layers);
 }
 
 /** Resolves a wow/ directory: local rules merged over every reachable inherits_from source. */
 export async function resolveRules(wowDir: string, provider: SourceProvider): Promise<ResolveResult> {
-  const warnings: string[] = [];
-  const root = resolve(wowDir);
-  const rules = await resolveInto(root, provider, new Set([root]), warnings);
-  return { rules, warnings };
+  const context: ResolveContext = { provider, warnings: [] };
+  const rules = await resolveSource(wowDir, "local", context, new Set(), {});
+  return { rules, warnings: context.warnings };
 }

@@ -1,6 +1,7 @@
 flowchart LR
-  W[wow/ config.yaml + rules] --> L[loadLocalRules]
+  W[wow/ config.yaml + rules] --> L[resolveRules<br/>local + inherits_from via SourceProvider]
   L --> P[planSync]
+  L -.->|warnings; --strict fails| P
   P --> R[renderTarget]
   R --> P
   P -->|created / updated / unchanged / blocked| C{--check?}

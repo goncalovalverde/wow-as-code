@@ -93,11 +93,22 @@ describe("resolveRules (shared loader)", () => {
     expect(byId.extra.provenance).toBe("local");
   });
 
-  it("warns and skips remote sources instead of failing silently", async () => {
+  it("warns instead of failing when a remote source is unavailable", async () => {
     await writeWow(join(root, "team"), { a: "soft" }, ["https://github.com/org/wow"]);
     const { rules, warnings } = await resolveRules(join(root, "team"), new FilesystemSourceProvider());
     expect(rules).toHaveLength(1);
     expect(warnings[0]).toContain("https://github.com/org/wow");
+  });
+
+  it("reports a conflict when a local rule tries to relax an inherited hard rule", async () => {
+    await writeWow(join(root, "company"), { sec: "hard" });
+    await writeWow(join(root, "team"), { sec: "info" }, ["../company"]);
+    const { rules } = await resolveRules(join(root, "team"), new FilesystemSourceProvider());
+    expect(rules[0].conflict).toMatchObject({
+      lockedBy: "../company",
+      attemptedBy: "local",
+      attemptedEnforcement: "info",
+    });
   });
 
   it("warns when a local source directory is missing", async () => {

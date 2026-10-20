@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { resolve } from "node:path";
 import { resolveRules } from "../lib/load.js";
-import { FilesystemSourceProvider } from "../lib/resolver.js";
+import { createSourceProvider } from "../lib/sources.js";
 import type { OutputFormat, ResolvedRule } from "../lib/types.js";
 
 export const showCommand = new Command("show")
@@ -13,7 +13,10 @@ export const showCommand = new Command("show")
     const format: OutputFormat = options.format;
     const wowDir = resolve(process.cwd(), options.dir);
 
-    const { rules: resolved, warnings } = await resolveRules(wowDir, new FilesystemSourceProvider());
+    const provider = createSourceProvider();
+    const { rules: resolved, warnings } = await resolveRules(wowDir, provider).finally(() =>
+      provider.dispose?.()
+    );
     warnings.forEach((warning) => console.error(`⚠ ${warning}`));
 
     // Filter by ID if requested

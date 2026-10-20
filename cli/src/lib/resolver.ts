@@ -1,23 +1,42 @@
-import type { WoWFile, ResolvedRule } from "./types.js";
+import type { InheritSource, ResolvedRule, WoWFile } from "./types.js";
+
+export interface LoadedSource {
+  /** Stable identity used for cycle detection. */
+  id: string;
+  /** Local directory; base for resolving relative parent sources. */
+  location: string;
+  files: WoWFile[];
+  inheritsFrom: InheritSource[];
+}
+
+export interface LoadOptions {
+  baseDir?: string;
+  ref?: string;
+}
 
 export interface SourceProvider {
-  loadFiles(source: string, ref?: string): Promise<WoWFile[]>;
+  load(source: string, options?: LoadOptions): Promise<LoadedSource>;
+  dispose?(): Promise<void>;
 }
 
 export class FilesystemSourceProvider implements SourceProvider {
   /** Manifest-driven when config.yaml exists; otherwise scans for .md files. */
-  async loadFiles(dirPath: string): Promise<WoWFile[]> {
+  async load(source: string, options: LoadOptions = {}): Promise<LoadedSource> {
     const { readdir, access } = await import("node:fs/promises");
-    const { join } = await import("node:path");
+    const { join, resolve } = await import("node:path");
     const { parseWoWFile } = await import("./parser.js");
     const { loadConfig } = await import("./config.js");
 
+    const dirPath = resolve(options.baseDir ?? process.cwd(), source);
     const configPath = join(dirPath, "config.yaml");
     const hasManifest = await access(configPath).then(() => true, () => false);
 
     if (hasManifest) {
       const config = await loadConfig(configPath);
-      return Promise.all(config.files.map((entry) => parseWoWFile(join(dirPath, entry.path))));
+      const files = await Promise.all(
+        config.files.map((entry) => parseWoWFile(join(dirPath, entry.path)))
+      );
+      return { id: dirPath, location: dirPath, files, inheritsFrom: config.inherits_from ?? [] };
     }
 
     const entries = await readdir(dirPath, { recursive: true });
@@ -32,7 +51,7 @@ export class FilesystemSourceProvider implements SourceProvider {
         // Skip unparseable files; validate will catch them
       }
     }
-    return files;
+    return { id: dirPath, location: dirPath, files, inheritsFrom: [] };
   }
 }
 
@@ -63,6 +82,13 @@ export function resolveChain(layers: InheritanceLayer[]): ResolvedRule[] {
         resolved.set(id, {
           ...existing,
           overriddenBy: `${provenance} (blocked: cannot relax hard rule)`,
+          conflict: {
+            lockedBy: existing.provenance,
+            lockedOwner: existing.frontmatter.owner,
+            attemptedBy: provenance,
+            attemptedFile: file.filePath,
+            attemptedEnforcement: file.frontmatter.enforcement as "soft" | "info",
+          },
         });
         continue;
       }
@@ -72,6 +98,7 @@ export function resolveChain(layers: InheritanceLayer[]): ResolvedRule[] {
         ...plain,
         provenance,
         overriddenBy: existing ? existing.provenance : undefined,
+        conflict: undefined,
       });
     }
   }

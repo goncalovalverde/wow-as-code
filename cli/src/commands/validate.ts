@@ -5,6 +5,9 @@ import { loadConfig } from "../lib/config.js";
 import { parseWoWFile } from "../lib/parser.js";
 import { validateFiles } from "../lib/schema.js";
 import { findReviewDiagnostics } from "../lib/staleness.js";
+import { findConflictDiagnostics } from "../lib/conflicts.js";
+import { resolveRules } from "../lib/load.js";
+import { createSourceProvider } from "../lib/sources.js";
 import type { OutputFormat, ValidationDiagnostic, WoWFile } from "../lib/types.js";
 
 export const validateCommand = new Command("validate")
@@ -81,12 +84,34 @@ export const validateCommand = new Command("validate")
     const schemaResult = await validateFiles(files);
     diagnostics.push(...schemaResult.diagnostics);
     diagnostics.push(...findReviewDiagnostics(files, new Date()));
+    diagnostics.push(...(await checkInheritance(wowDir, diagnostics)));
 
     const valid = diagnostics.filter((d) => d.level === "error").length === 0;
     outputResults({ valid, diagnostics }, format);
 
     if (!valid) process.exit(1);
   });
+
+async function checkInheritance(
+  wowDir: string,
+  existing: ValidationDiagnostic[]
+): Promise<ValidationDiagnostic[]> {
+  const provider = createSourceProvider();
+  try {
+    const { rules, warnings } = await resolveRules(wowDir, provider);
+    return [
+      ...findConflictDiagnostics(rules),
+      ...warnings.map((message) => ({ level: "warning" as const, file: "config.yaml", message })),
+    ];
+  } catch (error) {
+    // Parse failures are already reported per file; only surface unexpected ones
+    if (existing.some((diag) => diag.level === "error")) return [];
+    const message = error instanceof Error ? error.message : "Failed to resolve inheritance";
+    return [{ level: "error", file: "config.yaml", message }];
+  } finally {
+    await provider.dispose?.();
+  }
+}
 
 function outputResults(
   result: { valid: boolean; diagnostics: ValidationDiagnostic[] },

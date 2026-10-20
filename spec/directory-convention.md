@@ -93,6 +93,8 @@ enforcement: soft
 owner: @tech-lead
 applies_to: [pr]
 last_reviewed: 2026-05-01
+review_by: 2026-11-01
+rationale: Two reviewers catch more issues than one and spread knowledge across the team.
 tags: [collaboration, quality-gate]
 ---
 
@@ -100,14 +102,17 @@ tags: [collaboration, quality-gate]
 
 All pull requests require at least 2 approvals before merge.
 
-## Rationale
-
-Two reviewers catch more issues than one and spread knowledge across the team.
-
 ## Exceptions
 
 - Hotfixes during incidents may merge with 1 approval from an on-call engineer.
 ```
+
+Optional frontmatter fields:
+
+| Field | Purpose |
+|-------|---------|
+| `rationale` | One-line reason the rule exists. Included in compiled agent files (`wow sync`). |
+| `review_by` | Date (ISO 8601) by which the rule must be reviewed again. `wow validate` warns once it is past. |
 
 ## Naming
 
