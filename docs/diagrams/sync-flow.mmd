@@ -1,0 +1,9 @@
+flowchart LR
+  W[wow/ config.yaml + rules] --> L[loadLocalRules]
+  L --> P[planSync]
+  P --> R[renderTarget]
+  R --> P
+  P -->|created / updated / unchanged / blocked| C{--check?}
+  C -->|yes| X[exit 1 if pending]
+  C -->|no, none blocked| F[write AGENTS.md, CLAUDE.md,<br/>.github/copilot-instructions.md, .cursorrules]
+  C -->|no, blocked| E[refuse; use --force]

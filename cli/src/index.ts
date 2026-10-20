@@ -2,6 +2,7 @@ import { Command } from "commander";
 import { initCommand } from "./commands/init.js";
 import { validateCommand } from "./commands/validate.js";
 import { showCommand } from "./commands/show.js";
+import { syncCommand } from "./commands/sync.js";
 
 const program = new Command();
 
@@ -13,5 +14,6 @@ program
 program.addCommand(initCommand);
 program.addCommand(validateCommand);
 program.addCommand(showCommand);
+program.addCommand(syncCommand);
 
 program.parse();

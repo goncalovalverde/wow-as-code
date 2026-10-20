@@ -7,6 +7,8 @@ export interface WoWFrontmatter {
   applies_to: string[];
   last_reviewed: string;
   tags?: string[];
+  rationale?: string;
+  review_by?: string;
 }
 
 export interface WoWFile {

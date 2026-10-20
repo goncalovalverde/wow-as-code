@@ -48,6 +48,15 @@
       "items": {
         "type": "string"
       }
+    },
+    "rationale": {
+      "type": "string",
+      "description": "Why this rule exists. Surfaced to agents and humans so rules stay self-documenting and can be challenged."
+    },
+    "review_by": {
+      "type": "string",
+      "description": "ISO 8601 date by which this rule must be reviewed again. Past this date the rule is considered stale.",
+      "format": "date"
     }
   },
   "additionalProperties": false

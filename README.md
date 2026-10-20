@@ -73,6 +73,14 @@ Company wow/ → Unit wow/ → Team wow/
 - `applies_to` filtering: agents load rules matching the current trigger (pr, commit, code-generation, onboarding)
 - Provenance tracking: resolved views show which level each rule came from
 
+### Compile to Any Agent (`wow sync`)
+```sh
+wow sync                 # writes AGENTS.md, CLAUDE.md, .github/copilot-instructions.md, .cursorrules
+wow sync --check         # CI gate: exit 1 if generated files are missing or drifted
+wow sync -t agents-md    # one target only
+```
+`wow/` is the single source of truth. Generated files carry a `DO NOT EDIT` header; `wow sync` refuses to overwrite hand-written files unless `--force` is passed. See [ADR-002](docs/adr/002-compile-first-runtime-second.md) and the [flow diagram](docs/diagrams/sync-flow.mmd).
+
 ## Specification
 
 - [Directory Convention](spec/directory-convention.md)
