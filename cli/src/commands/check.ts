@@ -28,11 +28,17 @@ export const checkCommand = new Command("check")
   .option("-r, --root <path>", "repository root to check", ".")
   .option("-t, --trigger <trigger>", "only check rules that apply to a trigger (e.g. pr)")
   .option("--allow-commands", "run command checks (local rules only)")
+  .option("--regex-timeout <ms>", "abort a regex check on one file after this many ms", "1000")
   .option("--strict", "also fail on soft-rule failures and on hard rules that need a human")
   .option("--explain", "show evidence and provenance for every result")
   .option("-f, --format <format>", "output format (text|json)", "text")
   .action(async (options) => {
     const format: OutputFormat = options.format;
+    const regexTimeoutMs = Number(options.regexTimeout);
+    if (!Number.isInteger(regexTimeoutMs) || regexTimeoutMs < 1) {
+      console.error("--regex-timeout must be a positive integer (milliseconds)");
+      process.exit(2);
+    }
     const provider = createSourceProvider();
     const { rules, warnings } = await resolveRules(resolve(process.cwd(), options.dir), provider).finally(() =>
       provider.dispose?.()
@@ -41,7 +47,11 @@ export const checkCommand = new Command("check")
 
     const report = await runChecks(
       rules,
-      { root: resolve(process.cwd(), options.root), allowCommands: Boolean(options.allowCommands) },
+      {
+        root: resolve(process.cwd(), options.root),
+        allowCommands: Boolean(options.allowCommands),
+        regexTimeoutMs,
+      },
       { trigger: options.trigger }
     );
 

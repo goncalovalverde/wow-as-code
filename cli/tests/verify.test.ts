@@ -271,3 +271,11 @@ describe("runCheck: catastrophic regex", () => {
     expect(result.evidence).toContain("timed out");
   }, 15000);
 });
+
+describe("runChecks: ordering", () => {
+  it("keeps results in rule order when checks run in parallel", async () => {
+    const rules = ["a", "b", "c", "d"].map((id) => makeRule(id, "soft", { type: "deterministic", check: "file-exists", path: "none" }));
+    const report = await runChecks(rules, ctx());
+    expect(report.results.map((result) => result.ruleId)).toEqual(["a", "b", "c", "d"]);
+  });
+});
