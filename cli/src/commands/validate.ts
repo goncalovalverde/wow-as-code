@@ -2,10 +2,10 @@ import { Command } from "commander";
 import { resolve, join } from "node:path";
 import { readdir } from "node:fs/promises";
 import { loadConfig } from "../lib/config.js";
-import { parseWoWFile } from "../lib/parser.js";
+import { parseManifestEntries } from "../lib/manifest.js";
 import { validateFiles } from "../lib/schema.js";
 import { findReviewDiagnostics } from "../lib/staleness.js";
-import { findConflictDiagnostics } from "../lib/conflicts.js";
+import { findConflictDiagnostics, findSiblingConflictDiagnostics } from "../lib/conflicts.js";
 import { resolveRules } from "../lib/load.js";
 import { createSourceProvider } from "../lib/sources.js";
 import type { OutputFormat, ValidationDiagnostic, WoWFile } from "../lib/types.js";
@@ -36,26 +36,22 @@ export const validateCommand = new Command("validate")
 
     // Parse all wow files
     const files: WoWFile[] = [];
-    for (const entry of config.files) {
-      const filePath = join(wowDir, entry.path);
-      try {
-        const parsed = await parseWoWFile(filePath);
-        files.push(parsed);
-
-        // Check ID consistency
-        if (parsed.frontmatter.id !== entry.id) {
-          diagnostics.push({
-            level: "error",
-            file: entry.path,
-            message: `ID mismatch: config.yaml says "${entry.id}" but frontmatter says "${parsed.frontmatter.id}"`,
-            field: "id",
-          });
-        }
-      } catch (err) {
+    for (const { entry, file, error } of await parseManifestEntries(wowDir, config)) {
+      if (error || !file) {
         diagnostics.push({
           level: "error",
           file: entry.path,
-          message: err instanceof Error ? err.message : "Failed to parse file",
+          message: error?.message ?? "Failed to parse file",
+        });
+        continue;
+      }
+      files.push(file);
+      if (file.frontmatter.id !== entry.id) {
+        diagnostics.push({
+          level: "error",
+          file: entry.path,
+          message: `ID mismatch: config.yaml says "${entry.id}" but frontmatter says "${file.frontmatter.id}"`,
+          field: "id",
         });
       }
     }
@@ -98,9 +94,10 @@ async function checkInheritance(
 ): Promise<ValidationDiagnostic[]> {
   const provider = createSourceProvider();
   try {
-    const { rules, warnings } = await resolveRules(wowDir, provider);
+    const { rules, warnings, siblingConflicts } = await resolveRules(wowDir, provider);
     return [
       ...findConflictDiagnostics(rules),
+      ...findSiblingConflictDiagnostics(siblingConflicts),
       ...warnings.map((message) => ({ level: "warning" as const, file: "config.yaml", message })),
     ];
   } catch (error) {

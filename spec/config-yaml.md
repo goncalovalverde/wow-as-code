@@ -89,6 +89,7 @@ The CLI `wow validate` enforces:
 5. No duplicate `id` values within the same manifest.
 6. A file MUST NOT relax (`soft`/`info`) a `hard` rule inherited from a parent — `wow validate` reports a `CONFLICT` error.
 7. A rule past its `review_by` date produces a warning.
+8. Two `inherits_from` sources MUST NOT define the same `hard` rule differently unless the local `wow/` defines that `id` explicitly — otherwise `wow validate` reports a `CONFLICT` error.
 
 ## Auto-generation
 

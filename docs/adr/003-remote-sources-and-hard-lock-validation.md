@@ -19,7 +19,8 @@
    - Path traversal rejected; symlinks and manifest paths must resolve inside the clone.
    - `WOW_TOKEN`/`GH_TOKEN` is passed through `GIT_CONFIG_*` environment variables (never argv) and only for `github.com`.
 5. **Failure policy:** an unreachable source is a warning (per spec) and `wow sync --strict` turns it into a failure. Circular inheritance is reported as a warning.
-6. **Hard-lock validation:** `resolveChain` records a structured `conflict` on a rule when a lower layer tries to relax it; `wow validate` reports each as an error using the spec's message format.
+6. **Hard-lock validation:** `resolveChain` records a structured `conflict` on a rule when a lower layer tries to relax it; `wow validate` reports each as an error using the spec's message format. Two sibling parents defining the same `hard` rule with different content are also an error unless the local `wow/` defines that `id`.
+7. **Single parse path:** `parseManifestEntries` is shared by the filesystem provider and `wow validate`.
 
 ## Alternatives Considered
 

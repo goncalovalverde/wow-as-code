@@ -26,6 +26,7 @@ export class FilesystemSourceProvider implements SourceProvider {
     const { join, resolve } = await import("node:path");
     const { parseWoWFile } = await import("./parser.js");
     const { loadConfig } = await import("./config.js");
+    const { parseManifestEntries } = await import("./manifest.js");
 
     const dirPath = resolve(options.baseDir ?? process.cwd(), source);
     const configPath = join(dirPath, "config.yaml");
@@ -33,9 +34,10 @@ export class FilesystemSourceProvider implements SourceProvider {
 
     if (hasManifest) {
       const config = await loadConfig(configPath);
-      const files = await Promise.all(
-        config.files.map((entry) => parseWoWFile(join(dirPath, entry.path)))
-      );
+      const results = await parseManifestEntries(dirPath, config);
+      const failed = results.find((result) => result.error);
+      if (failed?.error) throw failed.error;
+      const files = results.flatMap((result) => (result.file ? [result.file] : []));
       return { id: dirPath, location: dirPath, files, inheritsFrom: config.inherits_from ?? [] };
     }
 

@@ -6,6 +6,7 @@ import { resolveChain, FilesystemSourceProvider } from "../src/lib/resolver.js";
 import { resolveRules } from "../src/lib/load.js";
 import { findReviewDiagnostics } from "../src/lib/staleness.js";
 import { parseWoWContent } from "../src/lib/parser.js";
+import { parseManifestEntries } from "../src/lib/manifest.js";
 import type { WoWFile } from "../src/lib/types.js";
 
 const makeFile = (id: string, enforcement: "hard" | "soft" | "info", extra = {}): WoWFile => ({
@@ -111,6 +112,15 @@ describe("resolveRules (shared loader)", () => {
     });
   });
 
+  it("reports conflicting hard rules from two sibling parents", async () => {
+    await writeWow(join(root, "a"), { sec: "hard" });
+    await writeWow(join(root, "b"), { sec: "hard" });
+    await writeFile(join(root, "b", "sec.md"), ruleDoc("sec", "hard").replace("body sec", "different"));
+    await writeWow(join(root, "team"), { own: "soft" }, ["../a", "../b"]);
+    const { siblingConflicts } = await resolveRules(join(root, "team"), new FilesystemSourceProvider());
+    expect(siblingConflicts).toEqual([{ id: "sec", sources: ["../a", "../b"] }]);
+  });
+
   it("warns when a local source directory is missing", async () => {
     await writeWow(join(root, "team"), { a: "soft" }, ["../nope"]);
     const { warnings } = await resolveRules(join(root, "team"), new FilesystemSourceProvider());
@@ -144,5 +154,31 @@ describe("parser date normalization", () => {
   it("normalizes unquoted review_by dates to ISO strings", () => {
     const file = parseWoWContent(ruleDoc("a", "soft").replace("---\n\nbody", "review_by: 2026-12-01\n---\n\nbody"), "a.md");
     expect(file.frontmatter.review_by).toBe("2026-12-01");
+  });
+});
+
+describe("parseManifestEntries", () => {
+  let root: string;
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), "wow-manifest-"));
+  });
+  afterEach(async () => {
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("returns a parsed file or an error per manifest entry without throwing", async () => {
+    await writeWow(join(root, "w"), { a: "soft" });
+    const config = {
+      wow_version: "1.0",
+      files: [
+        { path: "a.md", id: "a" },
+        { path: "missing.md", id: "m" },
+      ],
+    };
+    const results = await parseManifestEntries(join(root, "w"), config);
+    expect(results[0].file?.frontmatter.id).toBe("a");
+    expect(results[0].error).toBeUndefined();
+    expect(results[1].file).toBeUndefined();
+    expect(results[1].error).toBeInstanceOf(Error);
   });
 });

@@ -1,14 +1,17 @@
+import { detectSiblingHardConflicts, type SiblingHardConflict } from "./conflicts.js";
 import { resolveChain, type InheritanceLayer, type SourceProvider } from "./resolver.js";
 import type { ResolvedRule } from "./types.js";
 
 export interface ResolveResult {
   rules: ResolvedRule[];
   warnings: string[];
+  siblingConflicts: SiblingHardConflict[];
 }
 
 interface ResolveContext {
   provider: SourceProvider;
   warnings: string[];
+  siblingConflicts: SiblingHardConflict[];
 }
 
 async function resolveSource(
@@ -38,13 +41,16 @@ async function resolveSource(
     }
   }
 
+  const localIds = new Set(loaded.files.map((file) => file.frontmatter.id));
+  context.siblingConflicts.push(...detectSiblingHardConflicts(layers, localIds));
+
   layers.push({ provenance: label, files: loaded.files });
   return resolveChain(layers);
 }
 
 /** Resolves a wow/ directory: local rules merged over every reachable inherits_from source. */
 export async function resolveRules(wowDir: string, provider: SourceProvider): Promise<ResolveResult> {
-  const context: ResolveContext = { provider, warnings: [] };
+  const context: ResolveContext = { provider, warnings: [], siblingConflicts: [] };
   const rules = await resolveSource(wowDir, "local", context, new Set(), {});
-  return { rules, warnings: context.warnings };
+  return { rules, warnings: context.warnings, siblingConflicts: context.siblingConflicts };
 }
