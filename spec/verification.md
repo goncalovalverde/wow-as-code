@@ -75,4 +75,4 @@ Use `--trigger pr` to check only the rules that apply to pull requests.
 
 ## Diff-scoped checks
 
-`wow check --changed-since <ref>` limits `pattern` checks to files changed between `<ref>` and the working tree (added, copied, modified or renamed). If no matching file changed, the check passes, including `require` mode. File and command checks are unaffected. Use it in PR pipelines, for example `--changed-since origin/main`.
+`wow check --changed-since <ref>` limits `pattern` checks to files changed between `<ref>` and the working tree (added, copied, modified or renamed) plus untracked files. If no matching file changed, the check passes, including `require` mode. File and command checks are unaffected. Use it in PR pipelines, for example `--changed-since origin/main`.

@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -315,6 +316,14 @@ describe("changed-file scoping", () => {
 });
 
 describe("listChangedFiles", () => {
+  it("includes untracked files and modifications since the ref", async () => {
+    const run = (...args: string[]) => execFileSync("git", args, { cwd: root, stdio: "ignore" });
+    run("init", "-q");
+    run("-c", "user.email=a@b.c", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "init");
+    await writeFile(join(root, "fresh.txt"), "x");
+    expect(await listChangedFiles(root, "HEAD")).toEqual(["fresh.txt"]);
+  });
+
   it("rejects refs that look like options", async () => {
     await expect(listChangedFiles(root, "--output=x")).rejects.toThrow("Invalid git ref");
   });

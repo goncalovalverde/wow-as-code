@@ -1,11 +1,12 @@
 flowchart TD
   R[resolveRules] --> F[filterRules by --trigger]
-  F --> V{rule has verify?}
+  F --> CS[optional --changed-since: git diff + untracked files]
+  CS --> V{rule has verify?}
   V -- no --> U[count as unverified]
   V -- yes --> T{type}
   T -- deterministic --> D{check}
   D -- file-exists / file-absent --> FS[repo-root-confined path check]
-  D -- pattern --> PT[glob + contains/regex, size-capped]
+  D -- pattern --> PT[glob + contains/regex, size-capped, scoped to changed files]
   D -- command --> CM{local rule and --allow-commands?}
   CM -- yes --> EX[execFile, no shell]
   CM -- no --> SK[skipped]
