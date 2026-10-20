@@ -2,11 +2,11 @@ import { Command } from "commander";
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
-import { loadConfig } from "../lib/config.js";
-import { parseWoWFile } from "../lib/parser.js";
+import { resolveRules } from "../lib/load.js";
+import { FilesystemSourceProvider } from "../lib/resolver.js";
 import { TARGET_IDS, type TargetId } from "../lib/sync/render.js";
 import { planSync, type SyncEntry } from "../lib/sync/plan.js";
-import type { OutputFormat, ResolvedRule } from "../lib/types.js";
+import type { OutputFormat } from "../lib/types.js";
 
 function parseTargets(value: string | undefined): TargetId[] {
   if (!value) return TARGET_IDS;
@@ -16,16 +16,6 @@ function parseTargets(value: string | undefined): TargetId[] {
     throw new Error(`Unknown target(s): ${unknown.join(", ")}. Valid: ${TARGET_IDS.join(", ")}`);
   }
   return requested as TargetId[];
-}
-
-async function loadLocalRules(wowDir: string): Promise<ResolvedRule[]> {
-  const config = await loadConfig(join(wowDir, "config.yaml"));
-  const rules: ResolvedRule[] = [];
-  for (const entry of config.files) {
-    const file = await parseWoWFile(join(wowDir, entry.path));
-    rules.push({ ...file, provenance: "local" });
-  }
-  return rules;
 }
 
 function report(entries: SyncEntry[], format: OutputFormat): void {
@@ -49,7 +39,11 @@ export const syncCommand = new Command("sync")
   .option("-f, --format <format>", "output format (text|json)", "text")
   .action(async (options) => {
     const root = resolve(process.cwd(), options.root);
-    const rules = await loadLocalRules(resolve(process.cwd(), options.dir));
+    const { rules, warnings } = await resolveRules(
+      resolve(process.cwd(), options.dir),
+      new FilesystemSourceProvider()
+    );
+    warnings.forEach((warning) => console.error(`⚠ ${warning}`));
     const targets = parseTargets(options.target);
 
     const readExisting = (path: string) => {

@@ -4,6 +4,7 @@ import { readdir } from "node:fs/promises";
 import { loadConfig } from "../lib/config.js";
 import { parseWoWFile } from "../lib/parser.js";
 import { validateFiles } from "../lib/schema.js";
+import { findReviewDiagnostics } from "../lib/staleness.js";
 import type { OutputFormat, ValidationDiagnostic, WoWFile } from "../lib/types.js";
 
 export const validateCommand = new Command("validate")
@@ -79,6 +80,7 @@ export const validateCommand = new Command("validate")
     // Validate frontmatter against schema
     const schemaResult = await validateFiles(files);
     diagnostics.push(...schemaResult.diagnostics);
+    diagnostics.push(...findReviewDiagnostics(files, new Date()));
 
     const valid = diagnostics.filter((d) => d.level === "error").length === 0;
     outputResults({ valid, diagnostics }, format);

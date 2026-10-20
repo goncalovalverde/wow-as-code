@@ -7,6 +7,9 @@ function normalizeFrontmatter(data: Record<string, unknown>): WoWFrontmatter {
   if (data.last_reviewed instanceof Date) {
     data.last_reviewed = data.last_reviewed.toISOString().split("T")[0];
   }
+  if (data.review_by instanceof Date) {
+    data.review_by = data.review_by.toISOString().split("T")[0];
+  }
   return data as unknown as WoWFrontmatter;
 }
 

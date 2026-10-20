@@ -6,6 +6,8 @@ enforcement: hard
 owner: "@security-team"
 applies_to: [pr, commit]
 last_reviewed: 2026-04-01
+review_by: 2027-04-01
+rationale: Security vulnerabilities are the highest-cost defects; proactive review prevents incidents.
 tags: [security, compliance]
 ---
 

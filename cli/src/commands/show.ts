@@ -1,9 +1,8 @@
 import { Command } from "commander";
-import { resolve, join } from "node:path";
-import { loadConfig } from "../lib/config.js";
-import { parseWoWFile } from "../lib/parser.js";
-import { resolveInheritance, FilesystemSourceProvider } from "../lib/resolver.js";
-import type { OutputFormat, ResolvedRule, WoWFile } from "../lib/types.js";
+import { resolve } from "node:path";
+import { resolveRules } from "../lib/load.js";
+import { FilesystemSourceProvider } from "../lib/resolver.js";
+import type { OutputFormat, ResolvedRule } from "../lib/types.js";
 
 export const showCommand = new Command("show")
   .description("Display resolved wow/ rules with provenance")
@@ -13,22 +12,9 @@ export const showCommand = new Command("show")
   .action(async (options) => {
     const format: OutputFormat = options.format;
     const wowDir = resolve(process.cwd(), options.dir);
-    const configPath = join(wowDir, "config.yaml");
 
-    const config = await loadConfig(configPath);
-
-    // Load local files
-    const localFiles: WoWFile[] = [];
-    for (const entry of config.files) {
-      const parsed = await parseWoWFile(join(wowDir, entry.path));
-      localFiles.push(parsed);
-    }
-
-    // For now, resolve with local files only (remote support via SourceProvider later)
-    const resolved: ResolvedRule[] = localFiles.map((file) => ({
-      ...file,
-      provenance: "local",
-    }));
+    const { rules: resolved, warnings } = await resolveRules(wowDir, new FilesystemSourceProvider());
+    warnings.forEach((warning) => console.error(`⚠ ${warning}`));
 
     // Filter by ID if requested
     const output = options.id
