@@ -102,3 +102,15 @@ describe("planSync", () => {
     expect(entry.status).toBe("updated");
   });
 });
+
+describe("renderTarget: verifier line", () => {
+  it("states how a rule is verified", () => {
+    const rule = makeRule("a-hard", "hard");
+    rule.frontmatter.verify = { type: "deterministic", check: "file-exists", path: "SECURITY.md" };
+    expect(renderTarget([rule], "agents-md")).toContain("**Verified by:** `SECURITY.md` must exist");
+  });
+
+  it("omits the line when no verifier is set", () => {
+    expect(renderTarget([makeRule("a", "soft")], "agents-md")).not.toContain("Verified by");
+  });
+});

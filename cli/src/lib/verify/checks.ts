@@ -1,3 +1,4 @@
+import { createContext, Script } from "node:vm";
 import { execFile } from "node:child_process";
 import { access, readFile, stat } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
@@ -27,6 +28,8 @@ async function exists(path: string): Promise<boolean> {
   return access(path).then(() => true, () => false);
 }
 
+const REGEX_TIMEOUT_MS = 1000;
+
 async function checkFile(spec: { check: string; path: string }, context: CheckContext): Promise<CheckResult> {
   const absolute = insideRoot(context.root, spec.path);
   if (!absolute) return fail(`Path "${spec.path}" is outside the repository root`);
@@ -44,7 +47,13 @@ function buildMatcher(spec: { contains?: string; regex?: string }): (content: st
     return (content) => content.includes(needle);
   }
   const expression = new RegExp(spec.regex ?? "");
-  return (content) => expression.test(content);
+  const sandbox = createContext({ expression, content: "" });
+  const script = new Script("expression.test(content)");
+  return (content) => {
+    sandbox.content = content;
+    // vm timeout aborts catastrophic backtracking (ReDoS) from untrusted patterns
+    return script.runInContext(sandbox, { timeout: REGEX_TIMEOUT_MS }) as boolean;
+  };
 }
 
 async function readCapped(path: string): Promise<string | undefined> {
@@ -84,7 +93,12 @@ async function checkPattern(
   for (const file of files) {
     const content = await readCapped(resolve(context.root, file));
     if (content === undefined) continue;
-    const found = matches(content);
+    let found: boolean;
+    try {
+      found = matches(content);
+    } catch {
+      return fail(`Regular expression timed out on ${file} (possible catastrophic backtracking)`);
+    }
     if ((spec.mode === "forbid" && found) || (spec.mode === "require" && !found)) offenders.push(file);
   }
 

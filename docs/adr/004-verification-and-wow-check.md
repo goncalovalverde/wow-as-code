@@ -24,7 +24,7 @@ Rules are prose, so enforcement meant "an agent reads it and judges". ADR-002 de
 |--------|-----------------|
 | Arbitrary shell strings in rules | Remote or inherited rules would become remote code execution |
 | Built-in LLM judge | Needs credentials and is non-deterministic; unsuitable as a gate |
-| Safe regex engine (RE2) | Native dependency; limits and trusted sources are enough for now |
+| Safe regex engine (RE2) | Native dependency; length limits plus a 1s `vm` timeout per evaluation are enough for now |
 | Only deterministic verifiers | Many real rules need a human or an agent |
 
 ## Consequences

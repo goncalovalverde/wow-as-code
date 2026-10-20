@@ -261,3 +261,13 @@ describe("schema: verify block", () => {
     expect((await validateFiles([file({ verify: { type: "deterministic", check: "pattern", glob: "*" } })])).valid).toBe(false);
   });
 });
+
+describe("runCheck: catastrophic regex", () => {
+  it("fails instead of hanging on catastrophic backtracking", async () => {
+    await writeFile(join(root, "a.txt"), "a".repeat(40) + "!");
+    const spec: VerifySpec = { type: "deterministic", check: "pattern", glob: "*.txt", regex: "^(a+)+$", mode: "forbid" };
+    const result = await runCheck(spec, ctx());
+    expect(result.verdict).toBe("fail");
+    expect(result.evidence).toContain("timed out");
+  }, 15000);
+});

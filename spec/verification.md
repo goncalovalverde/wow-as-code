@@ -43,7 +43,7 @@ verify: { type: llm, prompt: "Does the PR description explain why the change is 
 ## Safety
 
 - Paths and globs must stay inside the repository root; `node_modules` and `.git` are ignored.
-- `pattern` checks read at most 5000 files of up to 256 KB each. Regexes are limited to 200 characters; treat inherited sources as trusted, since a pathological regex can be slow.
+- `pattern` checks read at most 5000 files of up to 256 KB each. Regexes are limited to 200 characters; each regex evaluation is aborted after 1 second and reported as a failure, so a pathological pattern cannot hang `wow check`.
 - `command` checks run only for **local** rules and only with `--allow-commands`. They never run through a shell, and never run for rules inherited from another source.
 
 ## Report
