@@ -8,6 +8,7 @@ import { fail, pass } from "./common.js";
 const MAX_FILES = 5000;
 const MAX_FILE_BYTES = 256 * 1024;
 const MAX_EVIDENCE_FILES = 10;
+const MAX_TIMEOUTS = 3;
 const DEFAULT_REGEX_TIMEOUT_MS = 1000;
 const IGNORED_DIRS = ["**/node_modules/**", "**/.git/**"];
 
@@ -65,6 +66,7 @@ export async function checkPattern(spec: PatternSpec, context: CheckContext): Pr
   }
 
   const offenders: string[] = [];
+  const timedOut: string[] = [];
   for (const file of files) {
     const content = await readCapped(resolve(context.root, file));
     if (content === undefined) continue;
@@ -72,9 +74,14 @@ export async function checkPattern(spec: PatternSpec, context: CheckContext): Pr
       const found = matches(content);
       if ((spec.mode === "forbid" && found) || (spec.mode === "require" && !found)) offenders.push(file);
     } catch {
-      return fail(`Regular expression timed out on ${file} (possible catastrophic backtracking)`);
+      timedOut.push(file);
+      if (timedOut.length >= MAX_TIMEOUTS) break;
     }
   }
 
+  if (timedOut.length > 0) {
+    const stopped = timedOut.length >= MAX_TIMEOUTS ? "; scan stopped early" : "";
+    return fail(`Regular expression timed out on ${timedOut.join(", ")} (possible catastrophic backtracking)${stopped}`);
+  }
   return summarize(spec, files.length, offenders);
 }

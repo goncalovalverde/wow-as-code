@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { runCheck } from "../src/lib/verify/checks.js";
 import { runChecks, shouldFail } from "../src/lib/verify/run.js";
 import { validateFiles } from "../src/lib/schema.js";
+import { parseRegexTimeout } from "../src/lib/verify/options.js";
 import type { VerifySpec } from "../src/lib/verify/types.js";
 import type { ResolvedRule } from "../src/lib/types.js";
 
@@ -277,5 +278,21 @@ describe("runChecks: ordering", () => {
     const rules = ["a", "b", "c", "d"].map((id) => makeRule(id, "soft", { type: "deterministic", check: "file-exists", path: "none" }));
     const report = await runChecks(rules, ctx());
     expect(report.results.map((result) => result.ruleId)).toEqual(["a", "b", "c", "d"]);
+  });
+});
+
+describe("parseRegexTimeout", () => {
+  it("accepts positive integers only", () => {
+    expect(parseRegexTimeout("250")).toBe(250);
+    for (const bad of ["0", "-1", "1.5", "x", ""]) expect(parseRegexTimeout(bad)).toBeUndefined();
+  });
+});
+
+describe("runCheck: multiple timeouts", () => {
+  it("reports every timed-out file up to the cap", async () => {
+    for (const name of ["a", "b"]) await writeFile(join(root, `${name}.txt`), "a".repeat(40) + "!");
+    const spec: VerifySpec = { type: "deterministic", check: "pattern", glob: "*.txt", regex: "^(a+)+$", mode: "forbid" };
+    const result = await runCheck(spec, ctx({ regexTimeoutMs: 50 }));
+    expect(result.evidence).toContain("a.txt, b.txt");
   });
 });

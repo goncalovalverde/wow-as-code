@@ -13,6 +13,16 @@ function verifierName(rule: ResolvedRule): string {
   return spec.type === "deterministic" ? `deterministic:${spec.check}` : spec.type;
 }
 
+const MAX_PARALLEL_CHECKS = 8;
+
+async function mapWithLimit<T>(items: T[], limit: number, task: (item: T) => Promise<void>): Promise<void> {
+  const queue = [...items];
+  const worker = async (): Promise<void> => {
+    for (let item = queue.shift(); item !== undefined; item = queue.shift()) await task(item);
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, queue.length) }, worker));
+}
+
 const isCommandCheck = (rule: ResolvedRule): boolean => {
   const spec = rule.frontmatter.verify;
   return spec?.type === "deterministic" && spec.check === "command";
@@ -46,9 +56,9 @@ export async function runChecks(
   };
 
   const outcomes = new Map<ResolvedRule, RuleResult>();
-  await Promise.all(
-    verified.filter((rule) => !isCommandCheck(rule)).map(async (rule) => outcomes.set(rule, await evaluate(rule, context)))
-  );
+  await mapWithLimit(verified.filter((rule) => !isCommandCheck(rule)), MAX_PARALLEL_CHECKS, async (rule) => {
+    outcomes.set(rule, await evaluate(rule, context));
+  });
   for (const rule of verified.filter(isCommandCheck)) outcomes.set(rule, await evaluate(rule, context));
 
   const results = verified.map((rule) => outcomes.get(rule) as RuleResult);
