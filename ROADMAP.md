@@ -4,6 +4,22 @@
 
 ---
 
+## Revised direction (see [ADR-002](docs/adr/002-compile-first-runtime-second.md))
+
+Compile-first, runtime-second. Rules are compiled into every agent's native format and served live via MCP; later they gain verification, workflows/agent roles, packs and telemetry.
+
+| Release | Slice |
+|---------|-------|
+| v1.0 | `wow sync` (→ `AGENTS.md`, `CLAUDE.md`, `copilot-instructions.md`, `.cursorrules`), `wow sync --check` drift gate, schema fields `rationale` + `review_by` |
+| v1.1 | `wow mcp` server, `wow show --trigger` |
+| v1.2 | `verify:` blocks (deterministic / llm / human; no LLM-only `hard` gate), `wow check`, structured JSON report |
+| v2 | Methodology-neutral workflows, then agent roles (autonomy + approval gates), packs + `wow.lock`, local telemetry + `wow report` |
+| v3 | Plugin API (triggers/verifiers), org-wide dashboard, agent-proposed rule changes |
+
+New spec additions stay experimental (`x-`) until proven. The sections below are the earlier plan and are being re-aligned to this table.
+
+---
+
 ## v1 — Foundation (current)
 
 **Goal:** Prove the concept. Codify enforceable team agreements that AI agents can read and act on.
