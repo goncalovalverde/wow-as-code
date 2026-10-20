@@ -5,12 +5,7 @@ import fg from "fast-glob";
 import type { CheckContext, CheckResult, VerifySpec } from "./types.js";
 import { fail, pass } from "./common.js";
 
-const MAX_FILES = 5000;
-const MAX_FILE_BYTES = 256 * 1024;
-const MAX_EVIDENCE_FILES = 10;
-const MAX_TIMEOUTS = 3;
-const DEFAULT_REGEX_TIMEOUT_MS = 1000;
-const IGNORED_DIRS = ["**/node_modules/**", "**/.git/**"];
+import { LIMITS } from "./limits.js";
 
 type PatternSpec = Extract<VerifySpec, { check: "pattern" }>;
 
@@ -31,20 +26,20 @@ function buildMatcher(spec: PatternSpec, timeoutMs: number): (content: string) =
 
 async function readCapped(path: string): Promise<string | undefined> {
   const info = await stat(path);
-  if (!info.isFile() || info.size > MAX_FILE_BYTES) return undefined;
+  if (!info.isFile() || info.size > LIMITS.maxFileBytes) return undefined;
   return readFile(path, "utf-8");
 }
 
 async function listFiles(spec: PatternSpec, context: CheckContext): Promise<string[]> {
-  const files = await fg(spec.glob, { cwd: context.root, ignore: IGNORED_DIRS, dot: true, onlyFiles: true, followSymbolicLinks: false });
+  const files = await fg(spec.glob, { cwd: context.root, ignore: [...LIMITS.ignoredDirs], dot: true, onlyFiles: true, followSymbolicLinks: false });
   const changed = context.changedFiles && new Set(context.changedFiles);
-  return files.filter((file) => !changed || changed.has(file)).sort().slice(0, MAX_FILES);
+  return files.filter((file) => !changed || changed.has(file)).sort().slice(0, LIMITS.maxFiles);
 }
 
 function summarize(spec: PatternSpec, checked: number, offenders: string[]): CheckResult {
   if (offenders.length === 0) return pass(`${checked} file(s) checked against "${spec.glob}"`);
-  const listed = offenders.slice(0, MAX_EVIDENCE_FILES).join(", ");
-  const extra = offenders.length > MAX_EVIDENCE_FILES ? ` (+${offenders.length - MAX_EVIDENCE_FILES} more)` : "";
+  const listed = offenders.slice(0, LIMITS.maxEvidenceFiles).join(", ");
+  const extra = offenders.length > LIMITS.maxEvidenceFiles ? ` (+${offenders.length - LIMITS.maxEvidenceFiles} more)` : "";
   const reason = spec.mode === "forbid" ? "contain a forbidden pattern" : "lack a required pattern";
   return fail(`${offenders.length} file(s) ${reason}: ${listed}${extra}`);
 }
@@ -56,7 +51,7 @@ export async function checkPattern(spec: PatternSpec, context: CheckContext): Pr
 
   let matches: (content: string) => boolean;
   try {
-    matches = buildMatcher(spec, context.regexTimeoutMs ?? DEFAULT_REGEX_TIMEOUT_MS);
+    matches = buildMatcher(spec, context.regexTimeoutMs ?? LIMITS.defaultRegexTimeoutMs);
   } catch (error) {
     return fail(`Invalid regular expression: ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -77,12 +72,12 @@ export async function checkPattern(spec: PatternSpec, context: CheckContext): Pr
       if ((spec.mode === "forbid" && found) || (spec.mode === "require" && !found)) offenders.push(file);
     } catch {
       timedOut.push(file);
-      if (timedOut.length >= MAX_TIMEOUTS) break;
+      if (timedOut.length >= LIMITS.maxRegexTimeouts) break;
     }
   }
 
   if (timedOut.length > 0) {
-    const stopped = timedOut.length >= MAX_TIMEOUTS ? "; scan stopped early" : "";
+    const stopped = timedOut.length >= LIMITS.maxRegexTimeouts ? "; scan stopped early" : "";
     return fail(`Regular expression timed out on ${timedOut.join(", ")} (possible catastrophic backtracking)${stopped}`);
   }
   return summarize(spec, files.length, offenders);

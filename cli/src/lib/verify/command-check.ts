@@ -2,9 +2,9 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { CheckContext, CheckResult, VerifySpec } from "./types.js";
 import { fail, pass } from "./common.js";
+import { LIMITS } from "./limits.js";
 
 const execFileAsync = promisify(execFile);
-const COMMAND_TIMEOUT_MS = 120_000;
 
 export async function checkCommand(
   spec: Extract<VerifySpec, { check: "command" }>,
@@ -20,7 +20,7 @@ export async function checkCommand(
   const [executable, ...args] = spec.argv;
   const expected = spec.expect_exit ?? 0;
   try {
-    await execFileAsync(executable, args, { cwd: context.root, timeout: COMMAND_TIMEOUT_MS });
+    await execFileAsync(executable, args, { cwd: context.root, timeout: LIMITS.commandTimeoutMs });
     return expected === 0 ? pass(`${executable} exited 0`) : fail(`${executable} exited 0, expected ${expected}`);
   } catch (error) {
     const failure = error as { code?: unknown; stderr?: string; message: string };

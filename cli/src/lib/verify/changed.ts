@@ -9,11 +9,12 @@ async function git(root: string, args: string[]): Promise<string[]> {
   return stdout.split("\n").filter(Boolean);
 }
 
-/** Files added, copied, modified or renamed since a git ref, plus untracked files, relative to root. */
+/** Files added, copied, modified or renamed since the merge-base with a git ref (as a PR would show), plus untracked files, relative to root. */
 export async function listChangedFiles(root: string, ref: string): Promise<string[]> {
   if (!REF_PATTERN.test(ref)) throw new Error(`Invalid git ref "${ref}"`);
+  const [base] = await git(root, ["merge-base", ref, "HEAD"]);
   const [tracked, untracked] = await Promise.all([
-    git(root, ["diff", "--name-only", "--relative", "--diff-filter=ACMR", ref, "--"]),
+    git(root, ["diff", "--name-only", "--relative", "--diff-filter=ACMR", base ?? ref, "--"]),
     git(root, ["ls-files", "--others", "--exclude-standard"]),
   ]);
   return [...new Set([...tracked, ...untracked])];

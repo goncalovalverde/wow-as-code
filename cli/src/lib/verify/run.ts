@@ -1,5 +1,6 @@
 import { filterRules } from "../query.js";
 import type { ResolvedRule } from "../types.js";
+import { LIMITS } from "./limits.js";
 import { runCheck } from "./checks.js";
 import type { CheckContext, CheckReport, RuleResult, Verdict, VerifySpec } from "./types.js";
 
@@ -12,8 +13,6 @@ function verifierName(rule: ResolvedRule): string {
   if (!spec) return "none";
   return spec.type === "deterministic" ? `deterministic:${spec.check}` : spec.type;
 }
-
-const MAX_PARALLEL_CHECKS = 8;
 
 async function mapWithLimit<T>(items: T[], limit: number, task: (item: T) => Promise<void>): Promise<void> {
   const queue = [...items];
@@ -56,7 +55,7 @@ export async function runChecks(
   };
 
   const outcomes = new Map<ResolvedRule, RuleResult>();
-  await mapWithLimit(verified.filter((rule) => !isCommandCheck(rule)), MAX_PARALLEL_CHECKS, async (rule) => {
+  await mapWithLimit(verified.filter((rule) => !isCommandCheck(rule)), LIMITS.maxParallelChecks, async (rule) => {
     outcomes.set(rule, await evaluate(rule, context));
   });
   for (const rule of verified.filter(isCommandCheck)) outcomes.set(rule, await evaluate(rule, context));

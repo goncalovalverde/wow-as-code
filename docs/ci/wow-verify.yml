@@ -1,0 +1,21 @@
+# Template: verify a PR against rules that declare a `verify:` block.
+# Copy to .github/workflows/. Requires wow-cli to be installable (published or vendored).
+name: WoW Verify
+
+on:
+  pull_request:
+
+jobs:
+  wow-verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # needed for the merge-base with the base branch
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Verify changed files against hard rules
+        run: npx wow-cli check --trigger pr --changed-since "origin/${{ github.base_ref }}" --format json
