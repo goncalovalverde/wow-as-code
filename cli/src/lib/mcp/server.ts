@@ -77,7 +77,12 @@ export function createWowServer(load: RuleLoader): McpServer {
           const known = rules.map((r) => r.frontmatter.id).join(", ");
           return text(`Rule "${id}" not found. Known rules: ${known || "none"}`, true);
         }
-        const payload = { ...summarize(rule), owner: rule.frontmatter.owner, body: rule.body };
+        const payload = {
+          ...summarize(rule),
+          owner: rule.frontmatter.owner,
+          verify: rule.frontmatter.verify,
+          body: rule.body,
+        };
         return text(withWarnings(JSON.stringify(payload, null, 2), warnings));
       })
   );

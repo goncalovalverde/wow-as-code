@@ -7,6 +7,9 @@ owner: "@security-team"
 applies_to: [pr, commit]
 last_reviewed: 2026-04-01
 review_by: 2027-04-01
+verify:
+  type: human
+  instructions: A member of @security-team approves the PR when auth, authorization or data-handling code changes.
 rationale: Security vulnerabilities are the highest-cost defects; proactive review prevents incidents.
 tags: [security, compliance]
 ---

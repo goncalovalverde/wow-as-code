@@ -6,6 +6,10 @@ enforcement: soft
 owner: "@platform-lead"
 applies_to: [pr, code-generation]
 last_reviewed: 2026-05-01
+verify:
+  type: deterministic
+  check: file-exists
+  path: docs/adr
 tags: [architecture, platform]
 ---
 

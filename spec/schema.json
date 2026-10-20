@@ -3,7 +3,14 @@
   "title": "WoW File Frontmatter",
   "description": "Schema for Ways of Working as Code file frontmatter (YAML)",
   "type": "object",
-  "required": ["id", "title", "category", "enforcement", "owner", "applies_to"],
+  "required": [
+    "id",
+    "title",
+    "category",
+    "enforcement",
+    "owner",
+    "applies_to"
+  ],
   "properties": {
     "id": {
       "type": "string",
@@ -17,12 +24,21 @@
     "category": {
       "type": "string",
       "description": "Fixed category for grouping.",
-      "enum": ["quality", "architecture", "delivery", "collaboration"]
+      "enum": [
+        "quality",
+        "architecture",
+        "delivery",
+        "collaboration"
+      ]
     },
     "enforcement": {
       "type": "string",
       "description": "How agents should treat this rule. 'hard' = block/warn (cannot be relaxed by lower levels). 'soft' = suggest (can be overridden). 'info' = reference only.",
-      "enum": ["hard", "soft", "info"]
+      "enum": [
+        "hard",
+        "soft",
+        "info"
+      ]
     },
     "owner": {
       "type": "string",
@@ -33,7 +49,15 @@
       "description": "Triggers that determine when an agent should load this rule.",
       "items": {
         "type": "string",
-        "enum": ["pr", "commit", "code-generation", "onboarding", "planning", "retrospective", "deploy"]
+        "enum": [
+          "pr",
+          "commit",
+          "code-generation",
+          "onboarding",
+          "planning",
+          "retrospective",
+          "deploy"
+        ]
       },
       "minItems": 1
     },
@@ -57,7 +81,180 @@
       "type": "string",
       "description": "ISO 8601 date by which this rule must be reviewed again. Past this date the rule is considered stale.",
       "format": "date"
+    },
+    "verify": {
+      "description": "How compliance with this rule is verified. 'hard' rules must use a deterministic or human verifier; an llm verifier is advisory only.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "check",
+            "path"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "deterministic"
+            },
+            "check": {
+              "enum": [
+                "file-exists",
+                "file-absent"
+              ]
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Path relative to the repository root."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "check",
+            "glob",
+            "mode"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "deterministic"
+            },
+            "check": {
+              "const": "pattern"
+            },
+            "glob": {
+              "type": "string",
+              "minLength": 1
+            },
+            "contains": {
+              "type": "string",
+              "minLength": 1
+            },
+            "regex": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "mode": {
+              "enum": [
+                "forbid",
+                "require"
+              ]
+            }
+          },
+          "oneOf": [
+            {
+              "required": [
+                "contains"
+              ]
+            },
+            {
+              "required": [
+                "regex"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "check",
+            "argv"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "deterministic"
+            },
+            "check": {
+              "const": "command"
+            },
+            "argv": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "description": "Executable and arguments; no shell. Runs only for local rules with --allow-commands."
+            },
+            "expect_exit": {
+              "type": "integer",
+              "default": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "instructions"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "human"
+            },
+            "instructions": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "prompt"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "llm"
+            },
+            "prompt": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "enforcement": {
+            "const": "hard"
+          }
+        },
+        "required": [
+          "enforcement"
+        ]
+      },
+      "then": {
+        "properties": {
+          "verify": {
+            "not": {
+              "properties": {
+                "type": {
+                  "const": "llm"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "type": "object"
+            }
+          }
+        }
+      }
+    }
+  ]
 }

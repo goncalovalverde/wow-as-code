@@ -14,6 +14,7 @@ async function getValidator(): Promise<ReturnType<Ajv["compile"]>> {
   const candidates = [
     resolve(dirname(fileURLToPath(import.meta.url)), "../schema.json"),
     resolve(dirname(fileURLToPath(import.meta.url)), "../../spec/schema.json"),
+    resolve(dirname(fileURLToPath(import.meta.url)), "../../../spec/schema.json"),
   ];
 
   let schema: object | null = null;

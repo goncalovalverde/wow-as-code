@@ -4,6 +4,7 @@ import { validateCommand } from "./commands/validate.js";
 import { showCommand } from "./commands/show.js";
 import { syncCommand } from "./commands/sync.js";
 import { mcpCommand } from "./commands/mcp.js";
+import { checkCommand } from "./commands/check.js";
 
 const program = new Command();
 
@@ -17,5 +18,6 @@ program.addCommand(validateCommand);
 program.addCommand(showCommand);
 program.addCommand(syncCommand);
 program.addCommand(mcpCommand);
+program.addCommand(checkCommand);
 
 program.parse();

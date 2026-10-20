@@ -1,3 +1,5 @@
+import type { VerifySpec } from "./verify/types.js";
+
 export interface WoWFrontmatter {
   id: string;
   title: string;
@@ -9,6 +11,7 @@ export interface WoWFrontmatter {
   tags?: string[];
   rationale?: string;
   review_by?: string;
+  verify?: VerifySpec;
 }
 
 export interface WoWFile {

@@ -79,7 +79,14 @@ wow sync                 # writes AGENTS.md, CLAUDE.md, .github/copilot-instruct
 wow sync --check         # CI gate: exit 1 if generated files are missing or drifted
 wow sync -t agents-md    # one target only
 ```
-`wow/` is the single source of truth. Generated files carry a `DO NOT EDIT` header; `wow sync` refuses to overwrite hand-written files unless `--force` is passed. ### Serve to Agents (`wow mcp`)
+`wow/` is the single source of truth. Generated files carry a `DO NOT EDIT` header; `wow sync` refuses to overwrite hand-written files unless `--force` is passed. ### Verify (`wow check`)
+```sh
+wow check --trigger pr          # evaluate rules that declare a verify: block
+wow check --format json --strict
+```
+Rules opt in with `verify: { type: deterministic | human | llm, ... }`. A `hard` rule can never be gated by an LLM alone, and `command` checks only run for local rules with `--allow-commands`. See [Verification](spec/verification.md) and [ADR-004](docs/adr/004-verification-and-wow-check.md).
+
+### Serve to Agents (`wow mcp`)
 `wow mcp` runs a read-only MCP server (tools: `get_context`, `list_rules`, `get_rule`) so agents ask "what applies to a `pr` right now?" instead of reading static files. `wow show --trigger pr` gives the same view in the terminal. See [Agent Integration](docs/agent-integration.md).
 
 `inherits_from` sources (local paths or `https://host/owner/repo/wow` with a `ref`) are resolved before compiling; add `--strict` in CI to fail if a parent cannot be loaded, and `wow validate` fails if a team tries to relax an inherited `hard` rule. See [ADR-002](docs/adr/002-compile-first-runtime-second.md), [ADR-003](docs/adr/003-remote-sources-and-hard-lock-validation.md), the [sync flow](docs/diagrams/sync-flow.mmd) and [source providers](docs/diagrams/source-providers.mmd).
@@ -87,6 +94,7 @@ wow sync -t agents-md    # one target only
 ## Specification
 
 - [Directory Convention](spec/directory-convention.md)
+- [Verification](spec/verification.md)
 - [Frontmatter Schema](spec/schema.json)
 - [Inheritance Model](spec/inheritance-model.md)
 - [Enforcement Levels](spec/enforcement-levels.md)

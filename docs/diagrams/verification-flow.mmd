@@ -1,0 +1,21 @@
+flowchart TD
+  R[resolveRules] --> F[filterRules by --trigger]
+  F --> V{rule has verify?}
+  V -- no --> U[count as unverified]
+  V -- yes --> T{type}
+  T -- deterministic --> D{check}
+  D -- file-exists / file-absent --> FS[repo-root-confined path check]
+  D -- pattern --> PT[glob + contains/regex, size-capped]
+  D -- command --> CM{local rule and --allow-commands?}
+  CM -- yes --> EX[execFile, no shell]
+  CM -- no --> SK[skipped]
+  T -- human --> NH[needs-human]
+  T -- llm --> SK
+  FS --> RP[report: rule, verifier, evidence, verdict]
+  PT --> RP
+  EX --> RP
+  NH --> RP
+  SK --> RP
+  RP --> X{hard fail, or strict condition?}
+  X -- yes --> E1[exit 1]
+  X -- no --> E0[exit 0]
