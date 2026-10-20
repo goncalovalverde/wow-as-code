@@ -35,9 +35,10 @@ async function readCapped(path: string): Promise<string | undefined> {
   return readFile(path, "utf-8");
 }
 
-async function listFiles(spec: PatternSpec, root: string): Promise<string[]> {
-  const files = await fg(spec.glob, { cwd: root, ignore: IGNORED_DIRS, dot: true, onlyFiles: true, followSymbolicLinks: false });
-  return files.sort().slice(0, MAX_FILES);
+async function listFiles(spec: PatternSpec, context: CheckContext): Promise<string[]> {
+  const files = await fg(spec.glob, { cwd: context.root, ignore: IGNORED_DIRS, dot: true, onlyFiles: true, followSymbolicLinks: false });
+  const changed = context.changedFiles && new Set(context.changedFiles);
+  return files.filter((file) => !changed || changed.has(file)).sort().slice(0, MAX_FILES);
 }
 
 function summarize(spec: PatternSpec, checked: number, offenders: string[]): CheckResult {
@@ -60,9 +61,10 @@ export async function checkPattern(spec: PatternSpec, context: CheckContext): Pr
     return fail(`Invalid regular expression: ${error instanceof Error ? error.message : String(error)}`);
   }
 
-  const files = await listFiles(spec, context.root);
+  const files = await listFiles(spec, context);
   if (files.length === 0) {
-    return spec.mode === "require" ? fail(`No files match "${spec.glob}"`) : pass(`No files match "${spec.glob}"`);
+    const scope = context.changedFiles ? "changed files match" : "files match";
+    return spec.mode === "require" && !context.changedFiles ? fail(`No ${scope} "${spec.glob}"`) : pass(`No ${scope} "${spec.glob}"`);
   }
 
   const offenders: string[] = [];

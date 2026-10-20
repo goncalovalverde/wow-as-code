@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { resolveRules } from "../lib/load.js";
 import { createSourceProvider } from "../lib/sources.js";
 import { runChecks, shouldFail } from "../lib/verify/run.js";
+import { listChangedFiles } from "../lib/verify/changed.js";
 import { parseRegexTimeout } from "../lib/verify/options.js";
 import { renderText } from "../lib/verify/render.js";
 import type { OutputFormat } from "../lib/types.js";
@@ -14,6 +15,7 @@ export const checkCommand = new Command("check")
   .option("-t, --trigger <trigger>", "only check rules that apply to a trigger (e.g. pr)")
   .option("--allow-commands", "run command checks (local rules only)")
   .option("--regex-timeout <ms>", "abort a regex check on one file after this many ms", "1000")
+  .option("--changed-since <ref>", "limit pattern checks to files changed since a git ref (e.g. origin/main)")
   .option("--strict", "also fail on soft-rule failures and on hard rules that need a human")
   .option("--explain", "show evidence and provenance for every result")
   .option("-f, --format <format>", "output format (text|json)", "text")
@@ -30,10 +32,14 @@ export const checkCommand = new Command("check")
     );
     warnings.forEach((warning) => console.error(`⚠ ${warning}`));
 
+    const root = resolve(process.cwd(), options.root);
+    const changedFiles = options.changedSince ? await listChangedFiles(root, options.changedSince) : undefined;
+
     const report = await runChecks(
       rules,
       {
-        root: resolve(process.cwd(), options.root),
+        root,
+        changedFiles,
         allowCommands: Boolean(options.allowCommands),
         regexTimeoutMs,
       },

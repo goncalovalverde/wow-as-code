@@ -72,3 +72,7 @@ Every result traces rule → verifier → evidence → verdict, plus the level t
 | `--strict`: any failure, or a `hard` rule that still needs a human | 1 |
 
 Use `--trigger pr` to check only the rules that apply to pull requests.
+
+## Diff-scoped checks
+
+`wow check --changed-since <ref>` limits `pattern` checks to files changed between `<ref>` and the working tree (added, copied, modified or renamed). If no matching file changed, the check passes, including `require` mode. File and command checks are unaffected. Use it in PR pipelines, for example `--changed-since origin/main`.

@@ -24,6 +24,8 @@ export interface CheckContext {
   provenance: string;
   allowCommands: boolean;
   regexTimeoutMs?: number;
+  /** When set, pattern checks only look at these root-relative files. */
+  changedFiles?: string[];
 }
 
 export interface RuleResult extends CheckResult {

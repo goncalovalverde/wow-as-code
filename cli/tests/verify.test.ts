@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { runCheck } from "../src/lib/verify/checks.js";
 import { runChecks, shouldFail } from "../src/lib/verify/run.js";
 import { validateFiles } from "../src/lib/schema.js";
+import { listChangedFiles } from "../src/lib/verify/changed.js";
 import { parseRegexTimeout } from "../src/lib/verify/options.js";
 import type { VerifySpec } from "../src/lib/verify/types.js";
 import type { ResolvedRule } from "../src/lib/types.js";
@@ -294,5 +295,27 @@ describe("runCheck: multiple timeouts", () => {
     const spec: VerifySpec = { type: "deterministic", check: "pattern", glob: "*.txt", regex: "^(a+)+$", mode: "forbid" };
     const result = await runCheck(spec, ctx({ regexTimeoutMs: 50 }));
     expect(result.evidence).toContain("a.txt, b.txt");
+  });
+});
+
+describe("changed-file scoping", () => {
+  const spec: VerifySpec = { type: "deterministic", check: "pattern", glob: "*.txt", contains: "SECRET", mode: "forbid" };
+
+  it("ignores offending files that did not change", async () => {
+    await writeFile(join(root, "old.txt"), "SECRET");
+    await writeFile(join(root, "new.txt"), "fine");
+    expect((await runCheck(spec, ctx({ changedFiles: ["new.txt"] }))).verdict).toBe("pass");
+    expect((await runCheck(spec, ctx({ changedFiles: ["old.txt"] }))).verdict).toBe("fail");
+  });
+
+  it("passes when nothing relevant changed, even in require mode", async () => {
+    const require: VerifySpec = { ...spec, mode: "require" } as VerifySpec;
+    expect((await runCheck(require, ctx({ changedFiles: [] }))).verdict).toBe("pass");
+  });
+});
+
+describe("listChangedFiles", () => {
+  it("rejects refs that look like options", async () => {
+    await expect(listChangedFiles(root, "--output=x")).rejects.toThrow("Invalid git ref");
   });
 });
