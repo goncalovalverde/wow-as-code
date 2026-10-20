@@ -23,6 +23,7 @@ export interface CheckContext {
   root: string;
   provenance: string;
   allowCommands: boolean;
+  regexTimeoutMs?: number;
 }
 
 export interface RuleResult extends CheckResult {

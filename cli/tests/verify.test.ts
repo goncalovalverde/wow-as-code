@@ -266,7 +266,7 @@ describe("runCheck: catastrophic regex", () => {
   it("fails instead of hanging on catastrophic backtracking", async () => {
     await writeFile(join(root, "a.txt"), "a".repeat(40) + "!");
     const spec: VerifySpec = { type: "deterministic", check: "pattern", glob: "*.txt", regex: "^(a+)+$", mode: "forbid" };
-    const result = await runCheck(spec, ctx());
+    const result = await runCheck(spec, ctx({ regexTimeoutMs: 100 }));
     expect(result.verdict).toBe("fail");
     expect(result.evidence).toContain("timed out");
   }, 15000);
