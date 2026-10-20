@@ -1,0 +1,10 @@
+flowchart LR
+  A[AI agent / IDE] -- "MCP stdio: get_context(pr)" --> S[createWowServer]
+  S --> C{cache fresh?<br/>--ttl 30s}
+  C -- no --> R[resolveRules]
+  C -- yes --> F
+  R --> P[SourceProvider<br/>filesystem / git]
+  P --> W[(wow/ + inherits_from)]
+  R --> F[filterRules by trigger]
+  F --> M[renderRuleSections<br/>hard, soft, info]
+  M -- "markdown + warnings" --> A

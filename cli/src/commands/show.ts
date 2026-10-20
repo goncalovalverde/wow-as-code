@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { resolve } from "node:path";
+import { filterRules } from "../lib/query.js";
 import { resolveRules } from "../lib/load.js";
 import { createSourceProvider } from "../lib/sources.js";
 import type { OutputFormat, ResolvedRule } from "../lib/types.js";
@@ -9,6 +10,7 @@ export const showCommand = new Command("show")
   .option("-d, --dir <path>", "wow directory path", "wow")
   .option("-f, --format <format>", "output format (text|json)", "text")
   .option("--id <id>", "show a single rule by ID")
+  .option("-t, --trigger <trigger>", "show only rules that apply to a trigger (e.g. pr, commit)")
   .action(async (options) => {
     const format: OutputFormat = options.format;
     const wowDir = resolve(process.cwd(), options.dir);
@@ -20,9 +22,7 @@ export const showCommand = new Command("show")
     warnings.forEach((warning) => console.error(`⚠ ${warning}`));
 
     // Filter by ID if requested
-    const output = options.id
-      ? resolved.filter((r) => r.frontmatter.id === options.id)
-      : resolved;
+    const output = filterRules(resolved, { id: options.id, trigger: options.trigger });
 
     if (output.length === 0) {
       console.error(options.id ? `Rule "${options.id}" not found.` : "No rules found.");

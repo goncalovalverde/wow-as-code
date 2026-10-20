@@ -67,6 +67,38 @@ rules — especially `hard` enforcement rules which are non-negotiable.
 
 ---
 
+## Level 1.5: Compiled Files and MCP (`wow sync`, `wow mcp`)
+
+Skip the copy-paste of Level 1 and give every agent live, trigger-aware rules.
+
+**Compile** `wow/` into each tool's native instruction file (one-way; add `wow sync --check` to CI to catch drift):
+
+```sh
+wow sync                 # AGENTS.md, CLAUDE.md, .github/copilot-instructions.md, .cursorrules
+```
+
+**Serve** the resolved rules over [MCP](https://modelcontextprotocol.io) (stdio). Example client configuration:
+
+```json
+{
+  "mcpServers": {
+    "wow": { "command": "npx", "args": ["wow-cli", "mcp", "-d", "wow"] }
+  }
+}
+```
+
+| Tool | Purpose |
+|------|---------|
+| `get_context` | Rules for a trigger (`pr`, `commit`, `code-generation`, ...) as markdown, hard rules first. Call before acting. |
+| `list_rules` | Summaries, filterable by trigger, enforcement or category. |
+| `get_rule` | One rule in full by `id`. |
+
+Rules are resolved with inheritance (local and remote sources) and cached for 30 seconds (`--ttl`). If an inherited source cannot be loaded, tool results begin with a warning so the agent knows its context may be incomplete. All tools are read-only. See the [component diagram](diagrams/mcp-server.mmd).
+
+The same filtering is available on the CLI: `wow show --trigger pr`.
+
+---
+
 ## Level 2: GitHub Action Enforcement (Week 2-3)
 
 A GitHub Action that reads `wow/` files and posts a compliance comment on every PR.

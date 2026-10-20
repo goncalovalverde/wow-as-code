@@ -58,11 +58,14 @@ function renderRule(rule: ResolvedRule): string {
   return lines.join("\n");
 }
 
+/** Rules as markdown sections (hard, soft, info), without header marker or title. */
+export function renderRuleSections(rules: ResolvedRule[]): string {
+  return sortRules(rules).map(renderRule).join("\n\n");
+}
+
 export function renderTarget(rules: ResolvedRule[], target: TargetId): string {
   const { heading } = TARGETS[target];
-  const sections = sortRules(rules).map(renderRule);
-  return [GENERATED_MARKER, "", `# ${heading}`, "", ...sections.flatMap((s) => [s, ""])]
-    .join("\n")
-    .trimEnd()
-    .concat("\n");
+  const sections = renderRuleSections(rules);
+  const body = sections ? `\n\n${sections}` : "";
+  return `${GENERATED_MARKER}\n\n# ${heading}${body}\n`;
 }

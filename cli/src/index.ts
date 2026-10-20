@@ -3,6 +3,7 @@ import { initCommand } from "./commands/init.js";
 import { validateCommand } from "./commands/validate.js";
 import { showCommand } from "./commands/show.js";
 import { syncCommand } from "./commands/sync.js";
+import { mcpCommand } from "./commands/mcp.js";
 
 const program = new Command();
 
@@ -15,5 +16,6 @@ program.addCommand(initCommand);
 program.addCommand(validateCommand);
 program.addCommand(showCommand);
 program.addCommand(syncCommand);
+program.addCommand(mcpCommand);
 
 program.parse();
