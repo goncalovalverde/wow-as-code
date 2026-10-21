@@ -7,7 +7,6 @@ phases:
   - id: specify
     name: Specify
     performer: both
-    inputs: [request]
     outputs: [spec]
     gate: { approval: human }
   - id: plan
