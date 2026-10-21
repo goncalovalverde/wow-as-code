@@ -3,6 +3,8 @@ import { resolve } from "node:path";
 import { filterRules } from "../lib/query.js";
 import { resolveRules } from "../lib/load.js";
 import { createSourceProvider } from "../lib/sources.js";
+import { loadWorkflowsFromDir } from "../lib/workflow/from-dir.js";
+import { renderWorkflows } from "../lib/workflow/render.js";
 import type { OutputFormat, ResolvedRule } from "../lib/types.js";
 
 export const showCommand = new Command("show")
@@ -11,9 +13,21 @@ export const showCommand = new Command("show")
   .option("-f, --format <format>", "output format (text|json)", "text")
   .option("--id <id>", "show a single rule by ID")
   .option("-t, --trigger <trigger>", "show only rules that apply to a trigger (e.g. pr, commit)")
+  .option("--workflows", "show workflows instead of rules")
   .action(async (options) => {
     const format: OutputFormat = options.format;
     const wowDir = resolve(process.cwd(), options.dir);
+
+    if (options.workflows) {
+      const { workflows, diagnostics } = await loadWorkflowsFromDir(wowDir);
+      diagnostics.forEach((item) => console.error(`⚠ [${item.file}] ${item.message}`));
+      if (workflows.length === 0) {
+        console.error("No workflows found.");
+        process.exit(1);
+      }
+      console.log(format === "json" ? JSON.stringify(workflows, null, 2) : renderWorkflows(workflows));
+      return;
+    }
 
     const provider = createSourceProvider();
     const { rules: resolved, warnings } = await resolveRules(wowDir, provider).finally(() =>

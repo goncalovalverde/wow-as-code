@@ -82,9 +82,7 @@ export const validateCommand = new Command("validate")
     const schemaResult = await validateFiles(files);
     diagnostics.push(...schemaResult.diagnostics);
     diagnostics.push(...findReviewDiagnostics(files, new Date()));
-    diagnostics.push(...(await checkInheritance(wowDir, diagnostics)));
-
-    diagnostics.push(...(await checkWorkflows(wowDir, config, diagnostics)));
+    diagnostics.push(...(await checkResolved(wowDir, config, diagnostics)));
 
     const valid = diagnostics.filter((d) => d.level === "error").length === 0;
     outputResults({ valid, diagnostics }, format);
@@ -92,29 +90,13 @@ export const validateCommand = new Command("validate")
     if (!valid) process.exit(1);
   });
 
-async function checkWorkflows(
+/** Resolves rules once, then derives inheritance and workflow diagnostics from the same result. */
+async function checkResolved(
   wowDir: string,
   config: WoWConfig,
   existing: ValidationDiagnostic[]
 ): Promise<ValidationDiagnostic[]> {
-  if (!config.workflows?.length) return [];
   const loaded = await loadWorkflows(wowDir, config);
-  const provider = createSourceProvider();
-  try {
-    const { rules } = await resolveRules(wowDir, provider);
-    return [...loaded.diagnostics, ...(await validateWorkflows(loaded.workflows, rules))];
-  } catch (error) {
-    if (existing.some((diag) => diag.level === "error")) return loaded.diagnostics;
-    return [...loaded.diagnostics, { level: "error", file: "config.yaml", message: error instanceof Error ? error.message : "Failed to resolve rules for workflows" }];
-  } finally {
-    await provider.dispose?.();
-  }
-}
-
-async function checkInheritance(
-  wowDir: string,
-  existing: ValidationDiagnostic[]
-): Promise<ValidationDiagnostic[]> {
   const provider = createSourceProvider();
   try {
     const { rules, warnings, siblingConflicts } = await resolveRules(wowDir, provider);
@@ -122,12 +104,14 @@ async function checkInheritance(
       ...findConflictDiagnostics(rules),
       ...findSiblingConflictDiagnostics(siblingConflicts),
       ...warnings.map((message) => ({ level: "warning" as const, file: "config.yaml", message })),
+      ...loaded.diagnostics,
+      ...(await validateWorkflows(loaded.workflows, rules)),
     ];
   } catch (error) {
     // Parse failures are already reported per file; only surface unexpected ones
-    if (existing.some((diag) => diag.level === "error")) return [];
+    if (existing.some((diag) => diag.level === "error")) return loaded.diagnostics;
     const message = error instanceof Error ? error.message : "Failed to resolve inheritance";
-    return [{ level: "error", file: "config.yaml", message }];
+    return [...loaded.diagnostics, { level: "error", file: "config.yaml", message }];
   } finally {
     await provider.dispose?.();
   }
