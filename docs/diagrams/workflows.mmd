@@ -1,0 +1,8 @@
+flowchart TD
+  C[config.yaml workflows:] --> L[loadWorkflows]
+  L --> S[workflow-schema.json validation]
+  S --> X[semantic checks: unique phases, gate rule ids, agent + hard gate needs approval]
+  R[resolveRules] --> X
+  X --> V[wow validate diagnostics]
+  X --> SY[wow sync: Workflows section in AGENTS.md etc.]
+  X --> M[MCP: list_workflows, get_workflow]

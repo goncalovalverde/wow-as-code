@@ -3,6 +3,8 @@ import { z } from "zod";
 import { filterRules } from "../query.js";
 import { renderRuleSections } from "../sync/render.js";
 import type { ResolvedRule } from "../types.js";
+import { renderWorkflows } from "../workflow/render.js";
+import type { Workflow } from "../workflow/types.js";
 
 export interface LoadedRules {
   rules: ResolvedRule[];
@@ -10,6 +12,7 @@ export interface LoadedRules {
 }
 
 export type RuleLoader = () => Promise<LoadedRules>;
+export type WorkflowLoader = () => Promise<Workflow[]>;
 
 const READ_ONLY = { readOnlyHint: true, idempotentHint: true, openWorldHint: false } as const;
 
@@ -42,7 +45,7 @@ async function guarded(load: RuleLoader, run: (loaded: LoadedRules) => ToolResul
   }
 }
 
-export function createWowServer(load: RuleLoader): McpServer {
+export function createWowServer(load: RuleLoader, loadWorkflowList: WorkflowLoader = async () => []): McpServer {
   const server = new McpServer({ name: "wow-as-code", version: "0.1.0" });
 
   server.registerTool(
@@ -106,5 +109,55 @@ export function createWowServer(load: RuleLoader): McpServer {
       })
   );
 
+  server.registerTool(
+    "list_workflows",
+    {
+      description: "List team workflows (summaries). A workflow is an ordered set of phases performed by humans, agents or both.",
+      inputSchema: {},
+      annotations: READ_ONLY,
+    },
+    () =>
+      guardedWorkflows(loadWorkflowList, (workflows) =>
+        text(
+          JSON.stringify(
+            workflows.map(({ frontmatter }) => ({
+              id: frontmatter.id,
+              title: frontmatter.title,
+              description: frontmatter.description,
+              phases: frontmatter.phases.length,
+            })),
+            null,
+            2
+          )
+        )
+      )
+  );
+
+  server.registerTool(
+    "get_workflow",
+    {
+      description: "Get one workflow by id as markdown: phases, who performs each, artifacts, and exit gates.",
+      inputSchema: { id: z.string().describe("Workflow id, e.g. spec-driven") },
+      annotations: READ_ONLY,
+    },
+    ({ id }) =>
+      guardedWorkflows(loadWorkflowList, (workflows) => {
+        const match = workflows.filter((workflow) => workflow.frontmatter.id === id);
+        if (match.length === 0) {
+          const known = workflows.map((workflow) => workflow.frontmatter.id).join(", ");
+          return text(`Workflow "${id}" not found. Known workflows: ${known || "none"}`, true);
+        }
+        return text(renderWorkflows(match));
+      })
+  );
+
   return server;
+}
+
+async function guardedWorkflows(load: WorkflowLoader, run: (workflows: Workflow[]) => ToolResult): Promise<ToolResult> {
+  try {
+    return run(await load());
+  } catch (error) {
+    return text(`Failed to load workflows: ${error instanceof Error ? error.message : String(error)}`, true);
+  }
 }

@@ -4,6 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { resolveRules } from "../lib/load.js";
 import { createSourceProvider } from "../lib/sources.js";
+import { loadWorkflowsFromDir } from "../lib/workflow/from-dir.js";
 import { TARGET_IDS, type TargetId } from "../lib/sync/render.js";
 import { planSync, type SyncEntry } from "../lib/sync/plan.js";
 import type { OutputFormat } from "../lib/types.js";
@@ -41,9 +42,14 @@ export const syncCommand = new Command("sync")
   .action(async (options) => {
     const root = resolve(process.cwd(), options.root);
     const provider = createSourceProvider();
-    const { rules, warnings } = await resolveRules(resolve(process.cwd(), options.dir), provider).finally(
-      () => provider.dispose?.()
-    );
+    const wowDir = resolve(process.cwd(), options.dir);
+    const { rules, warnings } = await resolveRules(wowDir, provider).finally(() => provider.dispose?.());
+    const { workflows, diagnostics } = await loadWorkflowsFromDir(wowDir);
+    diagnostics.forEach((item) => console.error(`⚠ [${item.file}] ${item.message}`));
+    if (options.strict && diagnostics.length > 0) {
+      console.error("Aborting: workflows could not be fully loaded (--strict).");
+      process.exit(1);
+    }
     warnings.forEach((warning) => console.error(`⚠ ${warning}`));
     if (options.strict && warnings.length > 0) {
       console.error("Aborting: inherited sources could not be fully resolved (--strict).");
@@ -55,7 +61,7 @@ export const syncCommand = new Command("sync")
       const absolute = join(root, path);
       return existsSync(absolute) ? readFileSync(absolute, "utf-8") : undefined;
     };
-    const entries = planSync(rules, targets, readExisting, { force: options.force });
+    const entries = planSync(rules, targets, readExisting, { force: options.force, workflows });
     report(entries, options.format);
 
     const blocked = entries.filter((entry) => entry.status === "blocked");

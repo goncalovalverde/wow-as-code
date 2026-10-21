@@ -8,7 +8,9 @@ import { findReviewDiagnostics } from "../lib/staleness.js";
 import { findConflictDiagnostics, findSiblingConflictDiagnostics } from "../lib/conflicts.js";
 import { resolveRules } from "../lib/load.js";
 import { createSourceProvider } from "../lib/sources.js";
-import type { OutputFormat, ValidationDiagnostic, WoWFile } from "../lib/types.js";
+import { loadWorkflows } from "../lib/workflow/load.js";
+import { validateWorkflows } from "../lib/workflow/validate.js";
+import type { OutputFormat, ValidationDiagnostic, WoWConfig, WoWFile } from "../lib/types.js";
 
 export const validateCommand = new Command("validate")
   .description("Validate wow/ files against schema and config manifest")
@@ -82,11 +84,32 @@ export const validateCommand = new Command("validate")
     diagnostics.push(...findReviewDiagnostics(files, new Date()));
     diagnostics.push(...(await checkInheritance(wowDir, diagnostics)));
 
+    diagnostics.push(...(await checkWorkflows(wowDir, config, diagnostics)));
+
     const valid = diagnostics.filter((d) => d.level === "error").length === 0;
     outputResults({ valid, diagnostics }, format);
 
     if (!valid) process.exit(1);
   });
+
+async function checkWorkflows(
+  wowDir: string,
+  config: WoWConfig,
+  existing: ValidationDiagnostic[]
+): Promise<ValidationDiagnostic[]> {
+  if (!config.workflows?.length) return [];
+  const loaded = await loadWorkflows(wowDir, config);
+  const provider = createSourceProvider();
+  try {
+    const { rules } = await resolveRules(wowDir, provider);
+    return [...loaded.diagnostics, ...(await validateWorkflows(loaded.workflows, rules))];
+  } catch (error) {
+    if (existing.some((diag) => diag.level === "error")) return loaded.diagnostics;
+    return [...loaded.diagnostics, { level: "error", file: "config.yaml", message: error instanceof Error ? error.message : "Failed to resolve rules for workflows" }];
+  } finally {
+    await provider.dispose?.();
+  }
+}
 
 async function checkInheritance(
   wowDir: string,

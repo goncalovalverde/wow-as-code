@@ -46,6 +46,7 @@ files:
 | `wow_version` | string | Yes | Spec version this config follows. Currently `"1.0"`. |
 | `inherits_from` | array | No | Parent level(s) to inherit rules from. |
 | `files` | array | Yes | Manifest of all WoW files in this directory. |
+| `workflows` | array | No | Experimental. Workflow files (`id`, `path`); see [Workflows](workflows.md). |
 
 ### `inherits_from[]`
 

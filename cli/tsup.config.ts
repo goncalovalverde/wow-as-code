@@ -12,9 +12,8 @@ export default defineConfig({
     js: "#!/usr/bin/env node",
   },
   onSuccess: async () => {
-    copyFileSync(
-      resolve("../spec/schema.json"),
-      resolve("dist/schema.json")
-    );
+    for (const name of ["schema.json", "workflow-schema.json"]) {
+      copyFileSync(resolve("../spec", name), resolve("dist", name));
+    }
   },
 });

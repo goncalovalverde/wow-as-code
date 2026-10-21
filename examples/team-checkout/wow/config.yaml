@@ -21,3 +21,9 @@ files:
     path: sprint-health.md
     applies_to: [retrospective]
     enforcement: soft
+
+workflows:
+  - id: spec-driven
+    path: workflows/spec-driven.md
+  - id: kanban-flow
+    path: workflows/kanban-flow.md

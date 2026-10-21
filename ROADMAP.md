@@ -13,7 +13,8 @@ Compile-first, runtime-second. Rules are compiled into every agent's native form
 | v1.0 ✅ | `wow sync` (→ `AGENTS.md`, `CLAUDE.md`, `copilot-instructions.md`, `.cursorrules`), `wow sync --check` drift gate, schema fields `rationale` + `review_by` |
 | v1.1 ✅ | `wow mcp` server, `wow show --trigger` |
 | v1.2 ✅ | `verify:` blocks (deterministic / llm / human; no LLM-only `hard` gate), `wow check`, structured JSON report |
-| v2 | Methodology-neutral workflows, then agent roles (autonomy + approval gates), packs + `wow.lock`, local telemetry + `wow report` |
+| v2.0 ✅ | Methodology-neutral workflows (`wow/workflows/`, validation, compiled by `wow sync`, MCP `list_workflows` / `get_workflow`) — experimental |
+| v2.x | Agent roles (autonomy + approval gates), packs + `wow.lock`, local telemetry + `wow report` |
 | v3 | Plugin API (triggers/verifiers), org-wide dashboard, agent-proposed rule changes |
 
 New spec additions stay experimental (`x-`) until proven. The sections below are the earlier plan and are being re-aligned to this table.

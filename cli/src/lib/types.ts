@@ -24,6 +24,12 @@ export interface WoWConfig {
   wow_version: string;
   inherits_from?: InheritSource[];
   files: ConfigFileEntry[];
+  workflows?: WorkflowEntry[];
+}
+
+export interface WorkflowEntry {
+  id: string;
+  path: string;
 }
 
 export interface InheritSource {

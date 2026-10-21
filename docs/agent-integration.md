@@ -92,6 +92,8 @@ wow sync                 # AGENTS.md, CLAUDE.md, .github/copilot-instructions.md
 | `get_context` | Rules for a trigger (`pr`, `commit`, `code-generation`, ...) as markdown, hard rules first. Call before acting. |
 | `list_rules` | Summaries, filterable by trigger, enforcement or category. |
 | `get_rule` | One rule in full by `id`. |
+| `list_workflows` | Summaries of team workflows (experimental). |
+| `get_workflow` | One workflow by `id`: phases, performers, artifacts, gates. |
 
 Rules are resolved with inheritance (local and remote sources) and cached for 30 seconds (`--ttl`). If an inherited source cannot be loaded, tool results begin with a warning so the agent knows its context may be incomplete. All tools are read-only. See the [component diagram](diagrams/mcp-server.mmd).
 

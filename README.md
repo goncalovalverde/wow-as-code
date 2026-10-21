@@ -118,6 +118,10 @@ See [ROADMAP.md](ROADMAP.md) for the full v1 → v4 vision.
 - Specification & documentation: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
 - Code (schemas, tooling): [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 
+## Workflows (experimental)
+
+Describe how work moves, independent of Scrum or Kanban: phases performed by humans, agents or both, with artifacts and exit gates that point at your rules. `wow validate` checks them, `wow sync` compiles them into the agent files, and `wow mcp` serves them. See [Workflows](spec/workflows.md) and [ADR-005](docs/adr/005-methodology-neutral-workflows.md).
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get involved.

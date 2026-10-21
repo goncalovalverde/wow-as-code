@@ -5,23 +5,26 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { WoWFile, ValidationDiagnostic, ValidationResult } from "./types.js";
 
-let schemaValidator: ReturnType<Ajv["compile"]> | null = null;
+type Validator = ReturnType<Ajv["compile"]>;
+const validators = new Map<string, Validator>();
 
-async function getValidator(): Promise<ReturnType<Ajv["compile"]>> {
-  if (schemaValidator) return schemaValidator;
+/** Compiles a spec schema by file name, looking next to the bundle first, then in the repo's spec/. */
+export async function getSchemaValidator(fileName: string): Promise<Validator> {
+  const cached = validators.get(fileName);
+  if (cached) return cached;
 
-  // Try multiple schema locations: bundled with CLI, then repo-relative
+  const here = dirname(fileURLToPath(import.meta.url));
   const candidates = [
-    resolve(dirname(fileURLToPath(import.meta.url)), "../schema.json"),
-    resolve(dirname(fileURLToPath(import.meta.url)), "../../spec/schema.json"),
-    resolve(dirname(fileURLToPath(import.meta.url)), "../../../spec/schema.json"),
+    resolve(here, fileName),
+    resolve(here, "..", fileName),
+    resolve(here, "../../spec", fileName),
+    resolve(here, "../../../spec", fileName),
   ];
 
   let schema: object | null = null;
   for (const schemaPath of candidates) {
     try {
-      const raw = await readFile(schemaPath, "utf-8");
-      schema = JSON.parse(raw);
+      schema = JSON.parse(await readFile(schemaPath, "utf-8"));
       break;
     } catch {
       continue;
@@ -29,16 +32,17 @@ async function getValidator(): Promise<ReturnType<Ajv["compile"]>> {
   }
 
   if (!schema) {
-    throw new Error(
-      "Cannot load schema.json. Ensure spec/schema.json exists in the repo root."
-    );
+    throw new Error(`Cannot load ${fileName}. Ensure spec/${fileName} exists in the repo root.`);
   }
 
   const ajv = new Ajv({ allErrors: true });
   addFormats(ajv);
-  schemaValidator = ajv.compile(schema);
-  return schemaValidator;
+  const validator = ajv.compile(schema);
+  validators.set(fileName, validator);
+  return validator;
 }
+
+const getValidator = () => getSchemaValidator("schema.json");
 
 export async function validateFrontmatter(
   file: WoWFile

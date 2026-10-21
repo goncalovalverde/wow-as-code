@@ -72,10 +72,10 @@ const textOf = (result: { content?: unknown }) =>
 describe("wow MCP server", () => {
   const load = async () => ({ rules, warnings: [] as string[] });
 
-  it("exposes the three tools", async () => {
+  it("exposes rule and workflow tools", async () => {
     const client = await connect(load);
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual(["get_context", "get_rule", "list_rules"]);
+    expect(tools.map((t) => t.name).sort()).toEqual(["get_context", "get_rule", "get_workflow", "list_rules", "list_workflows"]);
   });
 
   it("list_rules filters by trigger and returns summaries without bodies", async () => {

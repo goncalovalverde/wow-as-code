@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { resolveRules } from "../lib/load.js";
 import { createWowServer } from "../lib/mcp/server.js";
 import { createSourceProvider } from "../lib/sources.js";
+import { loadWorkflowsFromDir } from "../lib/workflow/from-dir.js";
 
 const DEFAULT_TTL_SECONDS = 30;
 
@@ -30,5 +31,5 @@ export const mcpCommand = new Command("mcp")
 
     // stdout carries the protocol; diagnostics go to stderr only
     console.error(`wow mcp: serving ${wowDir}`);
-    await createWowServer(load).connect(new StdioServerTransport());
+    await createWowServer(load, async () => (await loadWorkflowsFromDir(wowDir)).workflows).connect(new StdioServerTransport());
   });

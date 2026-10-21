@@ -1,4 +1,5 @@
 import type { ResolvedRule } from "../types.js";
+import type { Workflow } from "../workflow/types.js";
 import { GENERATED_MARKER, TARGETS, renderTarget, type TargetId } from "./render.js";
 
 export type SyncStatus = "created" | "updated" | "unchanged" | "blocked";
@@ -12,6 +13,7 @@ export interface SyncEntry {
 
 export interface PlanOptions {
   force?: boolean;
+  workflows?: Workflow[];
 }
 
 export type ReadExisting = (path: string) => string | undefined;
@@ -31,7 +33,7 @@ export function planSync(
 ): SyncEntry[] {
   return targets.map((target) => {
     const { path } = TARGETS[target];
-    const content = renderTarget(rules, target);
+    const content = renderTarget(rules, target, options.workflows);
     const status = classify(readExisting(path), content, options.force ?? false);
     return { target, path, status, content };
   });
