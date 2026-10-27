@@ -2,9 +2,8 @@ import { Command } from "commander";
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
-import { resolveRules } from "../lib/load.js";
+import { loadProject } from "../lib/project.js";
 import { createSourceProvider } from "../lib/sources.js";
-import { loadWorkflowsFromDir } from "../lib/workflow/from-dir.js";
 import { TARGET_IDS, type TargetId } from "../lib/sync/render.js";
 import { planSync, type SyncEntry } from "../lib/sync/plan.js";
 import type { OutputFormat } from "../lib/types.js";
@@ -43,8 +42,9 @@ export const syncCommand = new Command("sync")
     const root = resolve(process.cwd(), options.root);
     const provider = createSourceProvider();
     const wowDir = resolve(process.cwd(), options.dir);
-    const { rules, warnings } = await resolveRules(wowDir, provider).finally(() => provider.dispose?.());
-    const { workflows, diagnostics } = await loadWorkflowsFromDir(wowDir);
+    const { rules, warnings, workflows, workflowDiagnostics: diagnostics } = await loadProject(wowDir, provider).finally(
+      () => provider.dispose?.()
+    );
     diagnostics.forEach((item) => console.error(`⚠ [${item.file}] ${item.message}`));
     if (options.strict && diagnostics.length > 0) {
       console.error("Aborting: workflows could not be fully loaded (--strict).");

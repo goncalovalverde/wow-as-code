@@ -1,9 +1,8 @@
 import { Command } from "commander";
 import { resolve } from "node:path";
 import { filterRules } from "../lib/query.js";
-import { resolveRules } from "../lib/load.js";
+import { loadProject } from "../lib/project.js";
 import { createSourceProvider } from "../lib/sources.js";
-import { loadWorkflowsFromDir } from "../lib/workflow/from-dir.js";
 import { renderWorkflows } from "../lib/workflow/render.js";
 import type { OutputFormat, ResolvedRule } from "../lib/types.js";
 
@@ -18,22 +17,24 @@ export const showCommand = new Command("show")
     const format: OutputFormat = options.format;
     const wowDir = resolve(process.cwd(), options.dir);
 
+    const provider = createSourceProvider();
+    const project = await loadProject(wowDir, provider).finally(() => provider.dispose?.());
+    project.warnings.forEach((warning) => console.error(`⚠ ${warning}`));
+    project.workflowDiagnostics.forEach((item) => console.error(`⚠ [${item.file}] ${item.message}`));
+
     if (options.workflows) {
-      const { workflows, diagnostics } = await loadWorkflowsFromDir(wowDir);
-      diagnostics.forEach((item) => console.error(`⚠ [${item.file}] ${item.message}`));
-      if (workflows.length === 0) {
-        console.error("No workflows found.");
+      const shown = options.id
+        ? project.workflows.filter((workflow) => workflow.frontmatter.id === options.id)
+        : project.workflows;
+      if (shown.length === 0) {
+        console.error(options.id ? `Workflow "${options.id}" not found.` : "No workflows found.");
         process.exit(1);
       }
-      console.log(format === "json" ? JSON.stringify(workflows, null, 2) : renderWorkflows(workflows));
+      console.log(format === "json" ? JSON.stringify(shown, null, 2) : renderWorkflows(shown));
       return;
     }
 
-    const provider = createSourceProvider();
-    const { rules: resolved, warnings } = await resolveRules(wowDir, provider).finally(() =>
-      provider.dispose?.()
-    );
-    warnings.forEach((warning) => console.error(`⚠ ${warning}`));
+    const resolved = project.rules;
 
     // Filter by ID if requested
     const output = filterRules(resolved, { id: options.id, trigger: options.trigger });

@@ -49,7 +49,7 @@ Each phase:
 ## Delivery
 
 - `wow sync` appends a **Workflows** section to every compiled file (`AGENTS.md`, `CLAUDE.md`, ...).
-- `wow show --workflows` prints them (`--format json` for machine output).
+- `wow show --workflows` prints them (`--id <workflow>` for one, `--format json` for machine output).
 - `wow mcp` exposes `list_workflows` and `get_workflow`.
 
 ## Example

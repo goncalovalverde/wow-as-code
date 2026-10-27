@@ -6,9 +6,8 @@ import { parseManifestEntries } from "../lib/manifest.js";
 import { validateFiles } from "../lib/schema.js";
 import { findReviewDiagnostics } from "../lib/staleness.js";
 import { findConflictDiagnostics, findSiblingConflictDiagnostics } from "../lib/conflicts.js";
-import { resolveRules } from "../lib/load.js";
+import { loadProject } from "../lib/project.js";
 import { createSourceProvider } from "../lib/sources.js";
-import { loadWorkflows } from "../lib/workflow/load.js";
 import { validateWorkflows } from "../lib/workflow/validate.js";
 import type { OutputFormat, ValidationDiagnostic, WoWConfig, WoWFile } from "../lib/types.js";
 
@@ -82,7 +81,7 @@ export const validateCommand = new Command("validate")
     const schemaResult = await validateFiles(files);
     diagnostics.push(...schemaResult.diagnostics);
     diagnostics.push(...findReviewDiagnostics(files, new Date()));
-    diagnostics.push(...(await checkResolved(wowDir, config, diagnostics)));
+    diagnostics.push(...(await checkResolved(wowDir, diagnostics)));
 
     const valid = diagnostics.filter((d) => d.level === "error").length === 0;
     outputResults({ valid, diagnostics }, format);
@@ -90,28 +89,23 @@ export const validateCommand = new Command("validate")
     if (!valid) process.exit(1);
   });
 
-/** Resolves rules once, then derives inheritance and workflow diagnostics from the same result. */
-async function checkResolved(
-  wowDir: string,
-  config: WoWConfig,
-  existing: ValidationDiagnostic[]
-): Promise<ValidationDiagnostic[]> {
-  const loaded = await loadWorkflows(wowDir, config);
+/** Loads the project once, then derives inheritance and workflow diagnostics from the same result. */
+async function checkResolved(wowDir: string, existing: ValidationDiagnostic[]): Promise<ValidationDiagnostic[]> {
   const provider = createSourceProvider();
   try {
-    const { rules, warnings, siblingConflicts } = await resolveRules(wowDir, provider);
+    const { rules, warnings, siblingConflicts, workflows, workflowDiagnostics } = await loadProject(wowDir, provider);
     return [
       ...findConflictDiagnostics(rules),
       ...findSiblingConflictDiagnostics(siblingConflicts),
       ...warnings.map((message) => ({ level: "warning" as const, file: "config.yaml", message })),
-      ...loaded.diagnostics,
-      ...(await validateWorkflows(loaded.workflows, rules)),
+      ...workflowDiagnostics,
+      ...(await validateWorkflows(workflows, rules)),
     ];
   } catch (error) {
     // Parse failures are already reported per file; only surface unexpected ones
-    if (existing.some((diag) => diag.level === "error")) return loaded.diagnostics;
+    if (existing.some((diag) => diag.level === "error")) return [];
     const message = error instanceof Error ? error.message : "Failed to resolve inheritance";
-    return [...loaded.diagnostics, { level: "error", file: "config.yaml", message }];
+    return [{ level: "error", file: "config.yaml", message }];
   } finally {
     await provider.dispose?.();
   }

@@ -9,6 +9,8 @@ import { loadWorkflows } from "../src/lib/workflow/load.js";
 import { validateWorkflows } from "../src/lib/workflow/validate.js";
 import { renderWorkflows } from "../src/lib/workflow/render.js";
 import { renderTarget } from "../src/lib/sync/render.js";
+import { loadProject } from "../src/lib/project.js";
+import { FilesystemSourceProvider } from "../src/lib/resolver.js";
 import { createWowServer } from "../src/lib/mcp/server.js";
 import type { Workflow } from "../src/lib/workflow/types.js";
 import type { ResolvedRule } from "../src/lib/types.js";
@@ -163,5 +165,24 @@ describe("MCP workflow tools", () => {
     const client = await connect();
     const result = await client.callTool({ name: "get_workflow", arguments: { id: "zzz" } });
     expect(result.isError).toBe(true);
+  });
+});
+
+describe("loadProject", () => {
+  let dir: string;
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), "wow-proj-"));
+    await mkdir(join(dir, "workflows"));
+  });
+  afterEach(() => rm(dir, { recursive: true, force: true }));
+
+  it("returns rules and workflows together", async () => {
+    await writeFile(join(dir, "config.yaml"), "wow_version: '1.0'\nfiles:\n  - {id: r, path: r.md}\nworkflows:\n  - {id: w, path: workflows/w.md}\n");
+    await writeFile(join(dir, "r.md"), "---\nid: r\ntitle: R\ncategory: quality\nenforcement: soft\nowner: o\napplies_to: [pr]\nlast_reviewed: 2026-05-20\n---\nBody");
+    await writeFile(join(dir, "workflows", "w.md"), "---\nid: w\ntitle: W\nowner: o\nphases:\n  - {id: a, name: A, performer: human}\n---\n");
+    const project = await loadProject(dir, new FilesystemSourceProvider());
+    expect(project.rules.map((r) => r.frontmatter.id)).toEqual(["r"]);
+    expect(project.workflows.map((w) => w.frontmatter.id)).toEqual(["w"]);
+    expect(project.workflowDiagnostics).toEqual([]);
   });
 });
